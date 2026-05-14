@@ -17,10 +17,12 @@ namespace SimperSecureOnlineTestSystem.Controllers;
 public class PermitController : Controller
 {
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
-    public PermitController(IConfiguration configuration)
+    public PermitController(IConfiguration configuration, IWebHostEnvironment environment)
     {
         _configuration = configuration;
+        _environment = environment;
     }
 
     [HttpGet("")]
@@ -195,7 +197,9 @@ public class PermitController : Controller
                 CertifiedAt = DateTimeOffset.UtcNow,
                 CertificateId = BuildCertificateId(normalizedReqId),
                 CertificateUrl = BuildHaulingCertificateUrl(normalizedReqId),
-                CertificateQrDataUrl = BuildQrCodeDataUrl(BuildHaulingCertificateUrl(normalizedReqId))
+                CertificateQrDataUrl = BuildQrCodeDataUrl(BuildHaulingCertificateUrl(normalizedReqId)),
+                CompanyLogoPath = Path.Combine(_environment.WebRootPath, "images", "logo indexim.png"),
+                AppLogoPath = Path.Combine(_environment.WebRootPath, "logo", "logo.png")
             };
 
             var document = new HaulingCertificatePdfDocument(vm);

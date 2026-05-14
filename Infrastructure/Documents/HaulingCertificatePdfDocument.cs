@@ -38,12 +38,40 @@ public class HaulingCertificatePdfDocument : IDocument
                 col.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Padding(14).Column(header =>
                 {
                     header.Spacing(5);
-                    header.Item().Text("SERTIFIKAT KEPATUHAN KETENTUAN JALAN HAULING")
-                        .FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
-                    header.Item().Text("PT Indexim Coalindo").FontSize(11).SemiBold();
-                    header.Item().Text($"Certificate ID: {_model.CertificateId ?? "-"}").FontSize(9);
-                    header.Item().Text($"Req ID: {_model.ReqId}").FontSize(9);
-                    header.Item().Text($"Tanggal Terbit: {(_model.CertifiedAt ?? DateTimeOffset.UtcNow).ToLocalTime():dd MMM yyyy HH:mm} WITA").FontSize(9);
+                    header.Item().Row(row =>
+                    {
+                        row.ConstantItem(72).Height(52).AlignMiddle().AlignLeft().Element(x =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(_model.CompanyLogoPath) && File.Exists(_model.CompanyLogoPath))
+                            {
+                                x.Image(_model.CompanyLogoPath!, ImageScaling.FitArea);
+                                return;
+                            }
+
+                            x.Text("INDEXIM").Bold().FontColor(Colors.Blue.Darken2);
+                        });
+
+                        row.RelativeItem().Column(mid =>
+                        {
+                            mid.Spacing(3);
+                            mid.Item().AlignCenter().Text("SERTIFIKAT KEPATUHAN KETENTUAN JALAN HAULING")
+                                .FontSize(15).Bold().FontColor(Colors.Blue.Darken2);
+                            mid.Item().AlignCenter().Text("PT Indexim Coalindo").FontSize(11).SemiBold();
+                            mid.Item().AlignCenter().Text($"Certificate ID: {_model.CertificateId ?? "-"} | Req ID: {_model.ReqId}").FontSize(8.5f);
+                            mid.Item().AlignCenter().Text($"Tanggal Terbit: {(_model.CertifiedAt ?? DateTimeOffset.UtcNow).ToLocalTime():dd MMM yyyy HH:mm} WITA").FontSize(8.5f);
+                        });
+
+                        row.ConstantItem(72).Height(52).AlignMiddle().AlignRight().Element(x =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(_model.AppLogoPath) && File.Exists(_model.AppLogoPath))
+                            {
+                                x.Image(_model.AppLogoPath!, ImageScaling.FitArea);
+                                return;
+                            }
+
+                            x.Text("SIMPER").Bold().FontColor(Colors.Blue.Darken2);
+                        });
+                    });
                 });
 
                 col.Item().Row(row =>
@@ -91,4 +119,3 @@ public class HaulingCertificatePdfDocument : IDocument
         return pngQr.GetGraphic(12);
     }
 }
-

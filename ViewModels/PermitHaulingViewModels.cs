@@ -17,6 +17,8 @@ public class PermitHaulingDetailViewModel
     public string? CertificateUrl { get; set; }
     public string? CertificateQrDataUrl { get; set; }
     public DateTimeOffset? CertifiedAt { get; set; }
+    public string? CompanyLogoPath { get; set; }
+    public string? AppLogoPath { get; set; }
     public bool SourceUnavailable { get; set; }
     public string? ErrorMessage { get; set; }
 }
