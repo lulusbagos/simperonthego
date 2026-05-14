@@ -90,14 +90,6 @@
                     <span>URL Verifikasi Publik</span>
                     <a href="@Model.CertificateUrl" target="_blank" rel="noopener">@Model.CertificateUrl</a>
                 </div>
-                <div class="hauling-certificate-actions">
-                    <a class="btn btn-danger"
-                       asp-controller="Permit"
-                       asp-action="DownloadCertificatePdf"
-                       asp-route-reqId="@Model.ReqId">
-                        <i class="fas fa-file-pdf me-1"></i>Download PDF Sertifikat
-                    </a>
-                </div>
                 <div class="hauling-final-status is-ready mt-3">
                     Pemegang sertifikat menyatakan bersedia mematuhi dan bertanggung jawab penuh atas segala ketentuan jalan hauling PT Indexim Coalindo, termasuk konsekuensi operasional dan disipliner apabila terjadi pelanggaran terhadap prosedur keselamatan yang berlaku.
                 </div>
