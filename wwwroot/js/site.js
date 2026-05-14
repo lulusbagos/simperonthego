@@ -849,6 +849,11 @@
 				if (agreementButton.disabled) {
 					return;
 				}
+				if (completedCount !== haulingSections.length || !quizPassed || !agreementCheckbox?.checked) {
+					finalStatus.textContent = "Persetujuan tidak bisa diproses. Pastikan semua bagian sudah dibaca, jawaban quiz benar, dan checkbox pernyataan dicentang.";
+					finalStatus.classList.remove("is-ready");
+					return;
+				}
 
 				const defaultText = agreementButton.textContent;
 				agreementButton.disabled = true;
@@ -881,11 +886,15 @@
 					finalStatus.classList.add("is-ready", "is-celebrating");
 					saveHaulingProgress();
 
-					if (certificateUrl) {
-						window.setTimeout(() => {
-							window.location.href = certificateUrl;
-						}, 700);
-					}
+					window.setTimeout(() => {
+						if (certificateUrl) {
+							const separator = certificateUrl.includes("?") ? "&" : "?";
+							window.location.href = `${certificateUrl}${separator}refresh=${Date.now()}`;
+							return;
+						}
+
+						window.location.reload();
+					}, 350);
 				} catch (error) {
 					agreementButton.disabled = false;
 					agreementButton.textContent = defaultText || "Saya menyetujuinya";
