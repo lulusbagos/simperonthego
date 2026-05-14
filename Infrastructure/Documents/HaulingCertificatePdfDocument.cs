@@ -20,223 +20,88 @@ public class HaulingCertificatePdfDocument : IDocument
 
     public void Compose(IDocumentContainer container)
     {
-        var permit = _model.Permit;
-        if (permit is null)
-        {
-            throw new InvalidOperationException("Data permit tidak tersedia untuk pembuatan PDF.");
-        }
+        var permit = _model.Permit ?? throw new InvalidOperationException("Data permit tidak tersedia.");
+        var issuedAt = (_model.CertifiedAt ?? DateTimeOffset.UtcNow).ToLocalTime();
 
         container.Page(page =>
         {
             page.Size(PageSizes.A4);
-            page.Margin(28);
-            page.DefaultTextStyle(x => x.FontSize(10).FontColor("#1D2732").FontFamily("Arial"));
-            page.Background().Element(ComposeWatermark);
+            page.Margin(30);
+            page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10).FontColor("#1D2732"));
 
-            page.Content().Column(col =>
+            page.Header().Element(ComposeHeader);
+            page.Content().PaddingTop(10).Column(col =>
             {
-                col.Spacing(12);
-                col.Item().ShowEntire().Element(ComposeHeader);
-                col.Item().ShowEntire().Element(ComposeHero);
-                col.Item().Element(c => ComposeEmployeeCard(c, permit));
-                col.Item().Element(c => ComposeQrCard(c, _model.CertificateUrl ?? string.Empty));
-                col.Item().ShowEntire().Element(ComposeComplianceStatement);
-                col.Item().ShowEntire().Element(ComposeVerificationBox);
-                col.Item().ShowEntire().Element(ComposeFooter);
+                col.Spacing(10);
+
+                col.Item().Border(1).BorderColor("#D8E2ED").Background("#FFFFFF").Padding(12).Column(x =>
+                {
+                    x.Spacing(6);
+                    x.Item().Text("SERTIFIKAT KEPATUHAN KETENTUAN JALAN HAULING")
+                        .FontSize(15)
+                        .Bold()
+                        .FontColor("#234A6D");
+                    x.Item().Text("Dokumen resmi ini menyatakan peserta telah membaca, memahami, dan menyetujui ketentuan jalan hauling PT Indexim Coalindo.")
+                        .FontSize(10)
+                        .FontColor("#4E6072");
+                    x.Item().Text($"Certificate ID: {_model.CertificateId ?? "-"}   |   Req ID: {_model.ReqId}")
+                        .FontSize(9)
+                        .SemiBold()
+                        .FontColor("#2F4F6A");
+                    x.Item().Text($"Tanggal Terbit: {issuedAt:dd MMM yyyy HH:mm} WITA")
+                        .FontSize(9)
+                        .FontColor("#5B6E82");
+                });
+
+                col.Item().Border(1).BorderColor("#D8E2ED").Background("#FFFFFF").Padding(12).Column(x =>
+                {
+                    x.Spacing(4);
+                    x.Item().Text("Data Karyawan dan Permit").Bold().FontSize(11).FontColor("#20384D");
+                    x.Item().Text($"Nama: {ValueOrDash(permit.Nama)}");
+                    x.Item().Text($"NIK: {ValueOrDash(permit.Nik)}");
+                    x.Item().Text($"Perusahaan: {ValueOrDash(permit.Perusahaan)}");
+                    x.Item().Text($"Departemen: {ValueOrDash(permit.Departemen)}");
+                    x.Item().Text($"Jabatan: {ValueOrDash(permit.Jabatan)}");
+                    x.Item().Text($"Posisi: {ValueOrDash(permit.Posisi)}");
+                    x.Item().Text($"Akses Lokasi: {ValueOrDash(permit.AksesLokasi)}");
+                    x.Item().Text($"Nomor Permit: {ValueOrDash(permit.Nomor)}");
+                    x.Item().Text($"Status Kepatuhan: KETENTUAN_HAULING = TRUE").SemiBold().FontColor("#1B6F5A");
+                });
+
+                col.Item().Border(1).BorderColor("#D8E2ED").Background("#FFFFFF").Padding(12).Column(x =>
+                {
+                    x.Spacing(6);
+                    x.Item().Text("QR Verifikasi Publik").Bold().FontSize(11).FontColor("#20384D").AlignCenter();
+                    x.Item().AlignCenter().Width(120).Height(120).Image(BuildQrPng(_model.CertificateUrl ?? "-"));
+                    x.Item().Text("Scan QR untuk verifikasi halaman sertifikat.").FontSize(8).FontColor("#5B6E82").AlignCenter();
+                });
+
+                col.Item().Border(1).BorderColor("#CBE4D7").Background("#F1F9F5").Padding(12).Text(
+                    "Pemegang sertifikat menyatakan bersedia mematuhi dan bertanggung jawab penuh atas segala ketentuan jalan hauling PT Indexim Coalindo, termasuk konsekuensi operasional dan disipliner apabila terjadi pelanggaran terhadap prosedur keselamatan yang berlaku.")
+                    .FontSize(9.5f)
+                    .FontColor("#1B4E3D");
+
+                col.Item().Border(1).BorderColor("#D8E2ED").Background("#FFFFFF").Padding(10).Column(x =>
+                {
+                    x.Spacing(2);
+                    x.Item().Text($"URL Verifikasi: {_model.CertificateUrl ?? "-"}").FontSize(8.2f).FontColor("#1E4F7C");
+                    x.Item().Text("SIMPER On The Go - Official Hauling Compliance Certificate").FontSize(8).FontColor("#617080");
+                });
             });
         });
-    }
-
-    private void ComposeWatermark(IContainer container)
-    {
-        container
-            .AlignCenter()
-            .AlignMiddle()
-            .Rotate(-30)
-            .Text(text =>
-            {
-                text.DefaultTextStyle(x => x.FontSize(44).SemiBold().FontColor("#E5EDF5"));
-                text.Span("HAULING COMPLIANCE");
-                text.EmptyLine();
-                text.DefaultTextStyle(x => x.FontSize(13).SemiBold().FontColor("#EDF2F8"));
-                text.Span(_model.CertificateId ?? "CERTIFICATE");
-            });
     }
 
     private void ComposeHeader(IContainer container)
     {
         container
-            .Background(Colors.White)
-            .Border(1)
-            .BorderColor("#D7DFE8")
-            .PaddingVertical(14)
-            .PaddingHorizontal(16)
+            .BorderBottom(1)
+            .BorderColor("#DDE6EF")
+            .PaddingBottom(8)
             .Row(row =>
             {
-                row.ConstantItem(104).Height(62).Element(ComposeCompanyLogo);
-                row.RelativeItem().PaddingHorizontal(8).AlignCenter().Column(column =>
-                {
-                    column.Spacing(3);
-                    column.Item().Text("PT INDEXIM COALINDO")
-                        .SemiBold()
-                        .FontSize(12)
-                        .FontColor("#20384D")
-                        .AlignCenter();
-                    column.Item().Text("SERTIFIKAT KEPATUHAN KETENTUAN JALAN HAULING")
-                        .Bold()
-                        .FontSize(15)
-                        .LetterSpacing(0.15f)
-                        .FontColor("#254E73")
-                        .AlignCenter();
-                    column.Item().Text("SIMPER On The Go - Compliance Record")
-                        .FontSize(8.5f)
-                        .FontColor("#617080")
-                        .AlignCenter();
-                });
-                row.ConstantItem(88).Height(62).Element(ComposeAppLogo);
-            });
-    }
-
-    private void ComposeHero(IContainer container)
-    {
-        container
-            .Background("#FFFFFF")
-            .Border(1)
-            .BorderColor("#D7DFE8")
-            .Padding(14)
-            .Column(column =>
-            {
-                column.Spacing(6);
-                column.Item().Text("Official Completion Statement")
-                    .Bold()
-                    .FontSize(12.5f)
-                    .FontColor("#20384D");
-                column.Item().Text(
-                    "Dokumen ini menyatakan bahwa peserta telah menyelesaikan pembacaan ketentuan jalan hauling, memahami poin keselamatan operasional, dan memberikan persetujuan resmi pada sistem.")
-                    .FontSize(9.8f)
-                    .FontColor("#4B5E71");
-            });
-    }
-
-    private void ComposeEmployeeCard(IContainer container, PermitApprovalView permit)
-    {
-        container
-            .Background("#FFFFFF")
-            .Border(1)
-            .BorderColor("#D7DFE8")
-            .Padding(14)
-            .Column(column =>
-            {
-                column.Spacing(7);
-                column.Item().Text("Data Karyawan dan Permit")
-                    .Bold()
-                    .FontSize(12)
-                    .FontColor("#20384D");
-                column.Item().Element(c => ComposeKeyValueGrid(c, new[]
-                {
-                    ("Certificate ID", _model.CertificateId ?? "-"),
-                    ("Req ID", _model.ReqId),
-                    ("Nomor Permit", ValueOrDash(permit.Nomor)),
-                    ("Tanggal Permit", permit.Tanggal.HasValue ? permit.Tanggal.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm") : "-"),
-                    ("NIK", ValueOrDash(permit.Nik)),
-                    ("Nama", ValueOrDash(permit.Nama)),
-                    ("Perusahaan", ValueOrDash(permit.Perusahaan)),
-                    ("Departemen", ValueOrDash(permit.Departemen)),
-                    ("Jabatan", ValueOrDash(permit.Jabatan)),
-                    ("Posisi", ValueOrDash(permit.Posisi)),
-                    ("Akses Lokasi", ValueOrDash(permit.AksesLokasi)),
-                    ("Status Kepatuhan", "KETENTUAN_HAULING = TRUE")
-                }));
-            });
-    }
-
-    private void ComposeQrCard(IContainer container, string url)
-    {
-        container
-            .Background("#FFFFFF")
-            .Border(1)
-            .BorderColor("#D7DFE8")
-            .Padding(12)
-            .Column(column =>
-            {
-                column.Spacing(6);
-                column.Item().Text("QR Verifikasi Publik")
-                    .Bold()
-                    .FontSize(11)
-                    .FontColor("#20384D")
-                    .AlignCenter();
-
-                column.Item().Row(row =>
-                {
-                    row.ConstantItem(150).AlignMiddle().AlignCenter().Column(qr =>
-                    {
-                        qr.Item().AlignCenter().Width(118).Height(118).Image(BuildQrPng(url));
-                        qr.Item().AlignCenter().Text("Scan untuk membuka halaman verifikasi sertifikat.")
-                            .FontSize(7.5f)
-                            .FontColor("#617080");
-                    });
-
-                    row.RelativeItem().PaddingLeft(10).Column(info =>
-                    {
-                        info.Spacing(4);
-                        info.Item().Text("Status Verifikasi").SemiBold().FontColor("#2B4D70");
-                        info.Item().Text("Ketentuan hauling telah tercatat dan tervalidasi pada sistem.")
-                            .FontSize(9)
-                            .FontColor("#4B5E71");
-                        info.Item().Text($"URL: {url}")
-                            .FontSize(8)
-                            .FontColor("#1E4F7C");
-                    });
-                });
-            });
-    }
-
-    private void ComposeComplianceStatement(IContainer container)
-    {
-        container
-            .Background("#F1F9F5")
-            .Border(1)
-            .BorderColor("#C5E2D5")
-            .Padding(12)
-            .Text("Pemegang sertifikat menyatakan bersedia mematuhi dan bertanggung jawab penuh atas segala ketentuan jalan hauling PT Indexim Coalindo, termasuk konsekuensi operasional dan disipliner apabila terjadi pelanggaran terhadap prosedur keselamatan yang berlaku.")
-            .FontSize(9.6f)
-            .FontColor("#1B4E3D");
-    }
-
-    private void ComposeVerificationBox(IContainer container)
-    {
-        var issuedAt = (_model.CertifiedAt ?? DateTimeOffset.UtcNow).ToLocalTime();
-        container
-            .Background("#FFFFFF")
-            .Border(1)
-            .BorderColor("#D7DFE8")
-            .Padding(10)
-            .Column(column =>
-            {
-                column.Spacing(3);
-                column.Item().Text($"URL Verifikasi: {_model.CertificateUrl ?? "-"}")
-                    .FontSize(8.4f)
-                    .FontColor("#1E4F7C");
-                column.Item().Text($"Issued At: {issuedAt:dd MMM yyyy HH:mm} WITA")
-                    .FontSize(8.2f)
-                    .FontColor("#617080");
-            });
-    }
-
-    private void ComposeFooter(IContainer container)
-    {
-        container
-            .PaddingTop(6)
-            .BorderTop(1)
-            .BorderColor("#DDE5EE")
-            .Row(row =>
-            {
-                row.RelativeItem().Text("SIMPER On The Go - Official Hauling Compliance Certificate")
-                    .FontSize(8)
-                    .FontColor("#617080");
-                row.ConstantItem(120).AlignRight().Text($"Doc: {_model.CertificateId ?? "-"}")
-                    .FontSize(8)
-                    .FontColor("#617080");
+                row.ConstantItem(90).Height(52).Element(ComposeCompanyLogo);
+                row.RelativeItem().AlignCenter().AlignMiddle().Text("PT INDEXIM COALINDO").SemiBold().FontSize(11).FontColor("#20384D");
+                row.ConstantItem(70).Height(52).Element(ComposeAppLogo);
             });
     }
 
@@ -262,28 +127,7 @@ public class HaulingCertificatePdfDocument : IDocument
         container.AlignCenter().AlignMiddle().Text("SIMPER").Bold().FontColor("#20384D");
     }
 
-    private static void ComposeKeyValueGrid(IContainer container, IEnumerable<(string Key, string Value)> items)
-    {
-        container.Table(table =>
-        {
-            table.ColumnsDefinition(columns =>
-            {
-                columns.ConstantColumn(120);
-                columns.RelativeColumn();
-            });
-
-            foreach (var (key, value) in items)
-            {
-                table.Cell().PaddingVertical(2).Text(key).FontSize(9).FontColor("#617080");
-                table.Cell().PaddingVertical(2).Text(value).SemiBold().FontSize(9.4f).FontColor("#20384D");
-            }
-        });
-    }
-
-    private static string ValueOrDash(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? "-" : value;
-    }
+    private static string ValueOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
     private static byte[] BuildQrPng(string text)
     {
@@ -293,3 +137,4 @@ public class HaulingCertificatePdfDocument : IDocument
         return pngQr.GetGraphic(12);
     }
 }
+
