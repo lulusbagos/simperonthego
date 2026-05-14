@@ -225,6 +225,7 @@ public class PermitController : Controller
         var reqExpression = reqColumn == "id"
             ? "s.id::text"
             : $"s.{reqColumn}::text";
+        var reqMatchExpression = $"BTRIM({reqExpression}) ILIKE BTRIM(@req_id)";
         var ketentuanExpression = hasKetentuanColumn
             ? "COALESCE(s.ketentuan_hauling, FALSE)::text"
             : "'0'";
@@ -254,7 +255,7 @@ public class PermitController : Controller
                 {ketentuanExpression} AS ketentuan_hauling
             FROM public.tb_simper s
             LEFT JOIN public.tb_permit p ON p.id = s.{permitJoinColumn}
-            WHERE {reqExpression} ILIKE @req_id
+            WHERE {reqMatchExpression}
             ORDER BY {completionSortExpression} DESC, s.id DESC
             LIMIT 1;
             """;
@@ -308,6 +309,7 @@ public class PermitController : Controller
         var reqExpression = reqColumn == "id"
             ? "s.id::text"
             : $"s.{reqColumn}::text";
+        var reqMatchExpression = $"BTRIM({reqExpression}) ILIKE BTRIM(@req_id)";
 
         await using var command = connection.CreateCommand();
         command.CommandType = CommandType.Text;
@@ -315,7 +317,7 @@ public class PermitController : Controller
             WITH target AS (
                 SELECT s.id
                 FROM public.tb_simper s
-                WHERE {reqExpression} ILIKE @req_id
+                WHERE {reqMatchExpression}
                 ORDER BY s.id DESC
                 LIMIT 1
             ),
