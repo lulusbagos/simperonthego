@@ -38,12 +38,8 @@ public class HaulingCertificatePdfDocument : IDocument
                 col.Spacing(12);
                 col.Item().ShowEntire().Element(ComposeHeader);
                 col.Item().ShowEntire().Element(ComposeHero);
-                col.Item().ShowEntire().Row(row =>
-                {
-                    row.RelativeItem().Element(c => ComposeEmployeeCard(c, permit));
-                    row.ConstantItem(12);
-                    row.ConstantItem(176).Element(c => ComposeQrCard(c, _model.CertificateUrl ?? string.Empty));
-                });
+                col.Item().Element(c => ComposeEmployeeCard(c, permit));
+                col.Item().Element(c => ComposeQrCard(c, _model.CertificateUrl ?? string.Empty));
                 col.Item().ShowEntire().Element(ComposeComplianceStatement);
                 col.Item().ShowEntire().Element(ComposeVerificationBox);
                 col.Item().ShowEntire().Element(ComposeFooter);
@@ -164,14 +160,34 @@ public class HaulingCertificatePdfDocument : IDocument
             .Column(column =>
             {
                 column.Spacing(6);
-                column.Item().AlignCenter().Text("QR Verifikasi Publik")
+                column.Item().Text("QR Verifikasi Publik")
                     .Bold()
                     .FontSize(11)
-                    .FontColor("#20384D");
-                column.Item().AlignCenter().Width(122).Height(122).Image(BuildQrPng(url));
-                column.Item().AlignCenter().Text("Scan untuk membuka halaman verifikasi sertifikat.")
-                    .FontSize(7.5f)
-                    .FontColor("#617080");
+                    .FontColor("#20384D")
+                    .AlignCenter();
+
+                column.Item().Row(row =>
+                {
+                    row.ConstantItem(150).AlignMiddle().AlignCenter().Column(qr =>
+                    {
+                        qr.Item().AlignCenter().Width(118).Height(118).Image(BuildQrPng(url));
+                        qr.Item().AlignCenter().Text("Scan untuk membuka halaman verifikasi sertifikat.")
+                            .FontSize(7.5f)
+                            .FontColor("#617080");
+                    });
+
+                    row.RelativeItem().PaddingLeft(10).Column(info =>
+                    {
+                        info.Spacing(4);
+                        info.Item().Text("Status Verifikasi").SemiBold().FontColor("#2B4D70");
+                        info.Item().Text("Ketentuan hauling telah tercatat dan tervalidasi pada sistem.")
+                            .FontSize(9)
+                            .FontColor("#4B5E71");
+                        info.Item().Text($"URL: {url}")
+                            .FontSize(8)
+                            .FontColor("#1E4F7C");
+                    });
+                });
             });
     }
 
