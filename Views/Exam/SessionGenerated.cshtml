@@ -1,0 +1,59 @@
+@model SimperSecureOnlineTestSystem.ViewModels.SessionGeneratedViewModel
+@{
+    ViewData["Title"] = "Session Generated";
+}
+
+<div class="row justify-content-center participant-flow">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm participant-card" data-animate="reveal">
+            <div class="card-header bg-success text-white fw-semibold">Link Ujian Berhasil Digenerate</div>
+            <div class="card-body p-4">
+                <p class="mb-2"><strong>Peserta:</strong> @Model.EmployeeName</p>
+                <p class="mb-2"><strong>Unit/Vehicle:</strong> @Model.VehicleName</p>
+                <p class="mb-3"><strong>Berlaku sampai:</strong> @Model.EndTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Link Ujian</label>
+                    <div class="input-group">
+                        <input id="examLink" class="form-control" value="@Model.ExamLink" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyText('examLink', this)">Copy</button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ref ID Ujian</label>
+                    <div class="input-group">
+                        <input id="examRefId" class="form-control" value="@Model.RefId" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyText('examRefId', this)">Copy</button>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mb-0">
+                    Kirim <strong>Ref ID</strong> ke peserta. Peserta bisa langsung mengerjakan soal tanpa password.
+                    Nilai akan tersimpan berdasarkan kombinasi <strong>NIK/NRP + jenis tes (vehicle)</strong>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function copyText(elementId, button) {
+    const el = document.getElementById(elementId);
+    el.select();
+    el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value).then(() => {
+        if (!button) {
+            return;
+        }
+
+        const currentText = button.textContent;
+        button.textContent = "Copied";
+        window.setTimeout(() => {
+            button.textContent = currentText;
+        }, 1200);
+    });
+}
+</script>
+}

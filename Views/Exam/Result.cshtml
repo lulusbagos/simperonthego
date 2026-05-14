@@ -1,0 +1,72 @@
+@model SimperSecureOnlineTestSystem.ViewModels.ExamResultViewModel
+@{
+    ViewData["Title"] = "Exam Result";
+    var wrongAnswers = Model.Result.TotalQuestions - Model.Result.CorrectAnswers;
+    var accuracy = Model.Result.TotalQuestions == 0
+        ? 0
+        : Math.Round((decimal)Model.Result.CorrectAnswers / Model.Result.TotalQuestions * 100, 2);
+}
+
+<div class="row justify-content-center participant-flow">
+    <div class="col-lg-9 col-xl-8">
+        <div class="card shadow-sm border-0 participant-card" data-animate="reveal">
+            <div class="card-header result-header-premium d-flex justify-content-between align-items-center">
+                <span>Hasil Nilai Ujian</span>
+                <span class="badge @(Model.Result.PassStatus ? "bg-light text-success" : "bg-light text-danger")">
+                    @(Model.Result.PassStatus ? "PASS" : "FAIL")
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <div class="result-hero mb-4">
+                    <div>
+                        <div class="result-kicker">Exam Summary</div>
+                        <h4 class="mb-1">Sesi telah selesai diproses.</h4>
+                        <p class="text-muted mb-0">Nilai akhir, akurasi, dan status kelulusan ditampilkan pada ringkasan berikut.</p>
+                    </div>
+                    <div class="result-score-orb @(Model.Result.PassStatus ? "pass" : "fail")">
+                        <span>@Model.Result.Score</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="border rounded p-3 h-100 result-stat-card">
+                            <div class="small text-muted">Skor Akhir</div>
+                            <div class="h3 mb-0 fw-bold">@Model.Result.Score</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 h-100 result-stat-card">
+                            <div class="small text-muted">Akurasi Jawaban</div>
+                            <div class="h3 mb-0 fw-bold">@accuracy%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress mb-3" style="height:10px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width:@accuracy%"></div>
+                </div>
+
+                <div class="row mb-2">
+                    <div class="col-7 text-muted">Total Soal</div>
+                    <div class="col-5 text-end fw-semibold">@Model.Result.TotalQuestions</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-7 text-muted">Jawaban Benar</div>
+                    <div class="col-5 text-end fw-semibold text-success">@Model.Result.CorrectAnswers</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-7 text-muted">Jawaban Salah</div>
+                    <div class="col-5 text-end fw-semibold text-danger">@wrongAnswers</div>
+                </div>
+                <div class="row">
+                    <div class="col-7 text-muted">Selesai (UTC)</div>
+                    <div class="col-5 text-end fw-semibold">@Model.Result.FinishedAt.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-end">
+                <a asp-controller="Exam" asp-action="EnterRefId" class="btn btn-success">Kembali ke Portal Peserta</a>
+            </div>
+        </div>
+    </div>
+</div>

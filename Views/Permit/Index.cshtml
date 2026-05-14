@@ -1,0 +1,37 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PermitHaulingLookupViewModel
+@{
+    ViewData["Title"] = "Ketentuan Jalan Hauling";
+}
+
+<div class="hauling-shell">
+    <section class="hauling-hero">
+        <div class="hauling-hero-copy">
+            <span class="hauling-kicker">Public Compliance Portal</span>
+            <h1>Ketentuan Penggunaan Jalan Hauling</h1>
+            <p>Masukkan <strong>Req ID</strong> untuk melihat identitas karyawan dan ketentuan penggunaan jalan hauling PT Indexim Coalindo dalam format HTML.</p>
+        </div>
+        <div class="hauling-hero-panel">
+            <div class="hauling-panel-label">Akses Cepat</div>
+            <div class="hauling-panel-value">/ketentuanjalanhauling/[req_id]</div>
+            <div class="hauling-panel-note">Contoh: <code>/ketentuanjalanhauling/REQ-2024-001</code></div>
+        </div>
+    </section>
+
+    <section class="hauling-search-card">
+        <form asp-action="Search" method="post" class="row g-3 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-lg-9">
+                <label class="form-label">Req ID</label>
+                <input asp-for="ReqId" class="form-control form-control-lg" placeholder="Masukkan req_id permit approval" />
+            </div>
+            <div class="col-lg-3 d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Tampilkan Ketentuan</button>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mt-3 mb-0">@Model.ErrorMessage</div>
+        }
+    </section>
+</div>

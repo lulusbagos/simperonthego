@@ -1,0 +1,571 @@
+@model SimperSecureOnlineTestSystem.ViewModels.QuestionManageViewModel
+@{
+    ViewData["Title"] = "Manage Questions";
+    var companyMap = Model.ExistingCompanies.ToDictionary(x => x.Id, x => x.CompanyName);
+    var vehicleMap = Model.ExistingVehicles.ToDictionary(x => x.Id, x => x);
+    var easyCount = Model.ExistingQuestions.Count(x => x.Difficulty == "easy");
+    var mediumCount = Model.ExistingQuestions.Count(x => x.Difficulty == "medium");
+    var hardCount = Model.ExistingQuestions.Count(x => x.Difficulty == "hard");
+}
+
+<div class="page-head">
+    <div>
+        <h4 class="page-title">Question Library</h4>
+        <p class="page-subtitle">Tambah, cari, dan edit soal dengan alur yang lebih jelas untuk admin operasional.</p>
+    </div>
+    <div class="toolbar d-flex gap-2 flex-wrap">
+        <span class="metric-chip">Total Soal: @Model.ExistingQuestions.Count</span>
+        <span class="metric-chip">Vehicle Aktif: @Model.ExistingVehicles.Count</span>
+        <span class="metric-chip">Company Aktif: @Model.ExistingCompanies.Count</span>
+    </div>
+</div>
+
+@if (Model.ImportRows.Count > 0)
+{
+    <div class="premium-shell p-3 question-panel mb-4">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="metric-chip">Total Dibaca: @Model.ImportTotalCount</span>
+            <span class="metric-chip">Berhasil: @Model.ImportSuccessCount</span>
+            <span class="metric-chip">Gagal: @Model.ImportFailedCount</span>
+        </div>
+
+        <div class="table-responsive" style="max-height: 360px; overflow:auto;">
+            <table class="table premium-table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Row</th>
+                        <th>Company</th>
+                        <th>Vehicle</th>
+                        <th>Pertanyaan</th>
+                        <th>Status</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.ImportRows)
+                    {
+                        <tr>
+                            <td>@row.RowNumber</td>
+                            <td>@row.CompanyName</td>
+                            <td>@row.VehicleName</td>
+                            <td>@row.QuestionText</td>
+                            <td>
+                                @if (row.IsSuccess)
+                                {
+                                    <span class="badge bg-success">Valid</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Invalid</span>
+                                }
+                            </td>
+                            <td class="small">@row.Message</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="modal fade" id="questionEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content question-edit-modal">
+            <form asp-action="UpdateQuestion" method="post" enctype="multipart/form-data" id="questionEditForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <div>
+                        <div class="question-panel-kicker">Edit Soal</div>
+                        <h5 class="modal-title mb-0">Perbarui soal dengan cepat</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="questionId" id="editQuestionId" />
+
+                    <div class="question-form-grid mb-3">
+                        <div>
+                            <label class="form-label">Company</label>
+                            <select name="companyId" class="form-select" id="editCompanySelect">
+                                @foreach (var company in Model.ExistingCompanies)
+                                {
+                                    <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Unit / Vehicle</label>
+                            <select name="vehicleId" class="form-select" id="editVehicleSelect">
+                                @foreach (var vehicle in Model.ExistingVehicles)
+                                {
+                                    <option value="@vehicle.Id" data-company-id="@vehicle.CompanyId">@vehicle.VehicleName (@vehicle.SimperType)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Pertanyaan</label>
+                        <textarea name="questionText" id="editQuestionText" class="form-control" rows="4" required></textarea>
+                    </div>
+
+                    <div class="question-option-grid mb-3">
+                        <div class="question-option-item"><span class="question-option-badge">A</span><input type="text" name="optionA" id="editOptionA" class="form-control" required /></div>
+                        <div class="question-option-item"><span class="question-option-badge">B</span><input type="text" name="optionB" id="editOptionB" class="form-control" required /></div>
+                        <div class="question-option-item"><span class="question-option-badge">C</span><input type="text" name="optionC" id="editOptionC" class="form-control" required /></div>
+                        <div class="question-option-item"><span class="question-option-badge">D</span><input type="text" name="optionD" id="editOptionD" class="form-control" required /></div>
+                    </div>
+
+                    <div class="question-form-grid mb-3">
+                        <div>
+                            <label class="form-label">Kunci Jawaban</label>
+                            <select name="correctAnswer" id="editCorrectAnswer" class="form-select">
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Level Soal</label>
+                            <select name="difficulty" id="editDifficulty" class="form-select">
+                                <option value="easy">easy</option>
+                                <option value="medium">medium</option>
+                                <option value="hard">hard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="question-edit-media-grid">
+                        <div class="question-current-media-box">
+                            <div class="question-panel-kicker">Media Saat Ini</div>
+                            <div id="editMediaPreview" class="question-current-media-preview">Tidak ada media.</div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="removeImage" id="removeImageCheckbox" value="true" />
+                                <label class="form-check-label" for="removeImageCheckbox">Hapus gambar saat ini</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="removeVideo" id="removeVideoCheckbox" value="true" />
+                                <label class="form-check-label" for="removeVideoCheckbox">Hapus video saat ini</label>
+                            </div>
+                        </div>
+                        <div class="question-current-media-box">
+                            <div class="question-panel-kicker">Ganti Media</div>
+                            <div class="mb-3">
+                                <label class="form-label">Upload gambar baru</label>
+                                <input type="file" name="imageFile" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                            </div>
+                            <div>
+                                <label class="form-label">Upload video baru</label>
+                                <input type="file" name="videoFile" class="form-control" accept=".mp4,.webm,.ogg" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const filterVehicleOptions = (companySelectId, vehicleSelectId) => {
+                const companySelect = document.getElementById(companySelectId);
+                const vehicleSelect = document.getElementById(vehicleSelectId);
+                if (!companySelect || !vehicleSelect) return;
+
+                const baseOptions = Array.from(vehicleSelect.options).map((opt) => ({
+                    value: opt.value,
+                    text: opt.text,
+                    companyId: opt.getAttribute("data-company-id") || ""
+                }));
+
+                const render = () => {
+                    const selectedCompany = companySelect.value;
+                    const previous = vehicleSelect.value;
+                    vehicleSelect.innerHTML = "";
+
+                    baseOptions
+                        .filter(item => !selectedCompany || item.companyId === selectedCompany)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            option.textContent = item.text;
+                            if (item.companyId) option.setAttribute("data-company-id", item.companyId);
+                            vehicleSelect.appendChild(option);
+                        });
+
+                    if (Array.from(vehicleSelect.options).some(option => option.value === previous)) {
+                        vehicleSelect.value = previous;
+                    }
+                };
+
+                companySelect.addEventListener("change", render);
+                render();
+            };
+
+            filterVehicleOptions("manualCompanySelect", "manualVehicleSelect");
+            filterVehicleOptions("importCompanySelect", "importVehicleSelect");
+            filterVehicleOptions("editCompanySelect", "editVehicleSelect");
+
+            const searchInput = document.getElementById("questionSearchInput");
+            const companyFilter = document.getElementById("questionCompanyFilter");
+            const vehicleFilter = document.getElementById("questionVehicleFilter");
+            const difficultyFilter = document.getElementById("questionDifficultyFilter");
+            const visibleCount = document.getElementById("questionVisibleCount");
+            const cards = Array.from(document.querySelectorAll(".question-card"));
+
+            const applyFilters = () => {
+                const search = (searchInput?.value || "").trim().toLowerCase();
+                const company = companyFilter?.value || "all";
+                const vehicle = vehicleFilter?.value || "all";
+                const difficulty = difficultyFilter?.value || "all";
+                let total = 0;
+
+                cards.forEach(card => {
+                    const matchesSearch = !search || (card.dataset.search || "").includes(search);
+                    const matchesCompany = company === "all" || card.dataset.companyId === company;
+                    const matchesVehicle = vehicle === "all" || card.dataset.vehicleId === vehicle;
+                    const matchesDifficulty = difficulty === "all" || card.dataset.difficulty === difficulty;
+                    const isVisible = matchesSearch && matchesCompany && matchesVehicle && matchesDifficulty;
+                    card.style.display = isVisible ? "" : "none";
+                    if (isVisible) total++;
+                });
+
+                if (visibleCount) visibleCount.textContent = String(total);
+            };
+
+            [searchInput, companyFilter, vehicleFilter, difficultyFilter].forEach(element => {
+                if (!element) return;
+                element.addEventListener("input", applyFilters);
+                element.addEventListener("change", applyFilters);
+            });
+            applyFilters();
+
+            const modalElement = document.getElementById("questionEditModal");
+            if (!modalElement || typeof bootstrap === "undefined") return;
+
+            const modal = new bootstrap.Modal(modalElement);
+            const editQuestionId = document.getElementById("editQuestionId");
+            const editCompanySelect = document.getElementById("editCompanySelect");
+            const editVehicleSelect = document.getElementById("editVehicleSelect");
+            const editQuestionText = document.getElementById("editQuestionText");
+            const editOptionA = document.getElementById("editOptionA");
+            const editOptionB = document.getElementById("editOptionB");
+            const editOptionC = document.getElementById("editOptionC");
+            const editOptionD = document.getElementById("editOptionD");
+            const editCorrectAnswer = document.getElementById("editCorrectAnswer");
+            const editDifficulty = document.getElementById("editDifficulty");
+            const editMediaPreview = document.getElementById("editMediaPreview");
+            const removeImageCheckbox = document.getElementById("removeImageCheckbox");
+            const removeVideoCheckbox = document.getElementById("removeVideoCheckbox");
+
+            document.querySelectorAll(".question-edit-trigger").forEach(button => {
+                button.addEventListener("click", () => {
+                    const card = button.closest(".question-card");
+                    if (!card) return;
+
+                    editQuestionId.value = card.dataset.questionId || "";
+                    editCompanySelect.value = card.dataset.companyId || "";
+                    editCompanySelect.dispatchEvent(new Event("change"));
+                    editVehicleSelect.value = card.dataset.vehicleId || "";
+                    editQuestionText.value = card.dataset.questionText || "";
+                    editOptionA.value = card.dataset.optionA || "";
+                    editOptionB.value = card.dataset.optionB || "";
+                    editOptionC.value = card.dataset.optionC || "";
+                    editOptionD.value = card.dataset.optionD || "";
+                    editCorrectAnswer.value = card.dataset.correctAnswer || "A";
+                    editDifficulty.value = card.dataset.difficultyValue || "medium";
+                    removeImageCheckbox.checked = false;
+                    removeVideoCheckbox.checked = false;
+
+                    const imageUrl = card.dataset.imageUrl || "";
+                    const videoUrl = card.dataset.videoUrl || "";
+                    if (imageUrl) {
+                        editMediaPreview.innerHTML = `<img src="${imageUrl}" alt="Preview media soal" class="img-fluid rounded-3 border" />`;
+                    } else if (videoUrl) {
+                        editMediaPreview.innerHTML = `<div class="question-video-indicator"><i class="fas fa-circle-play me-2"></i>${videoUrl}</div>`;
+                    } else {
+                        editMediaPreview.textContent = "Tidak ada media.";
+                    }
+
+                    modal.show();
+                });
+            });
+        })();
+    </script>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ImportSummaryMessage))
+{
+    <div class="alert alert-info mb-3">@Model.ImportSummaryMessage</div>
+}
+
+<div class="question-overview-grid mb-4">
+    <div class="premium-shell p-3 question-overview-card">
+        <div class="question-overview-label">Easy</div>
+        <div class="question-overview-value">@easyCount</div>
+        <div class="question-overview-note">Soal dasar</div>
+    </div>
+    <div class="premium-shell p-3 question-overview-card">
+        <div class="question-overview-label">Medium</div>
+        <div class="question-overview-value">@mediumCount</div>
+        <div class="question-overview-note">Soal operasional</div>
+    </div>
+    <div class="premium-shell p-3 question-overview-card">
+        <div class="question-overview-label">Hard</div>
+        <div class="question-overview-value">@hardCount</div>
+        <div class="question-overview-note">Evaluasi lanjutan</div>
+    </div>
+    <div class="premium-shell p-3 question-overview-card">
+        <div class="question-overview-label">Media</div>
+        <div class="question-overview-value">@Model.ExistingQuestions.Count(x => !string.IsNullOrWhiteSpace(x.ImageUrl) || !string.IsNullOrWhiteSpace(x.VideoUrl))</div>
+        <div class="question-overview-note">Dengan gambar atau video</div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-5">
+        <div class="premium-shell p-3 question-panel h-100">
+            <div class="question-panel-head">
+                <div>
+                    <div class="question-panel-kicker">Tambah Soal</div>
+                    <h6 class="mb-1">Input manual</h6>
+                    <small class="text-muted">Pilih company dan unit, lalu isi pertanyaan beserta opsi jawabannya.</small>
+                </div>
+            </div>
+
+            <form asp-action="Questions" method="post" enctype="multipart/form-data" id="manualQuestionForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="question-form-grid">
+                    <div>
+                        <label asp-for="CompanyId" class="form-label">Company</label>
+                        <select asp-for="CompanyId" class="form-select" id="manualCompanySelect">
+                            @foreach (var company in Model.ExistingCompanies)
+                            {
+                                <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label asp-for="VehicleId" class="form-label">Unit / Vehicle</label>
+                        <select asp-for="VehicleId" class="form-select" id="manualVehicleSelect">
+                            @foreach (var vehicle in Model.ExistingVehicles)
+                            {
+                                <option value="@vehicle.Id" data-company-id="@vehicle.CompanyId">@vehicle.VehicleName (@vehicle.SimperType)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="question-form-block">
+                    <label asp-for="QuestionText" class="form-label">Pertanyaan</label>
+                    <textarea asp-for="QuestionText" class="form-control" rows="4" placeholder="Tulis pertanyaan ujian di sini..."></textarea>
+                </div>
+
+                <div class="question-option-grid">
+                    <div class="question-option-item"><span class="question-option-badge">A</span><input asp-for="OptionA" class="form-control" placeholder="Pilihan A" /></div>
+                    <div class="question-option-item"><span class="question-option-badge">B</span><input asp-for="OptionB" class="form-control" placeholder="Pilihan B" /></div>
+                    <div class="question-option-item"><span class="question-option-badge">C</span><input asp-for="OptionC" class="form-control" placeholder="Pilihan C" /></div>
+                    <div class="question-option-item"><span class="question-option-badge">D</span><input asp-for="OptionD" class="form-control" placeholder="Pilihan D" /></div>
+                </div>
+
+                <div class="question-form-grid">
+                    <div>
+                        <label asp-for="CorrectAnswer" class="form-label">Kunci Jawaban</label>
+                        <select asp-for="CorrectAnswer" class="form-select">
+                            <option>A</option><option>B</option><option>C</option><option>D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label asp-for="Difficulty" class="form-label">Level Soal</label>
+                        <select asp-for="Difficulty" class="form-select">
+                            <option value="easy">easy</option>
+                            <option value="medium">medium</option>
+                            <option value="hard">hard</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="question-media-guide">
+                    Media opsional. Pilih salah satu: gambar atau video.
+                </div>
+
+                <div class="question-form-grid">
+                    <div>
+                        <label asp-for="ImageFile" class="form-label">Gambar Soal</label>
+                        <input asp-for="ImageFile" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp" />
+                    </div>
+                    <div>
+                        <label asp-for="VideoFile" class="form-label">Video Soal</label>
+                        <input asp-for="VideoFile" class="form-control" type="file" accept=".mp4,.webm,.ogg" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-3">Simpan Soal Baru</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="premium-shell p-3 question-panel mb-3">
+            <div class="question-panel-head">
+                <div>
+                    <div class="question-panel-kicker">Bulk Import</div>
+                    <h6 class="mb-1">Upload massal per vehicle</h6>
+                    <small class="text-muted">Gunakan template Excel agar tim admin bisa menyiapkan banyak soal sekaligus.</small>
+                </div>
+                <a asp-action="DownloadQuestionTemplate" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-excel me-1"></i>Download Template
+                </a>
+            </div>
+
+            <form asp-action="ImportQuestionsExcel" method="post" enctype="multipart/form-data" id="bulkImportForm">
+                @Html.AntiForgeryToken()
+                <div class="question-form-grid mb-3">
+                    <div>
+                        <label asp-for="ImportCompanyId" class="form-label">Default Company</label>
+                        <select asp-for="ImportCompanyId" class="form-select" id="importCompanySelect">
+                            <option value="">Gunakan dari kolom Excel</option>
+                            @foreach (var company in Model.ExistingCompanies)
+                            {
+                                <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label asp-for="ImportVehicleId" class="form-label">Default Vehicle</label>
+                        <select asp-for="ImportVehicleId" class="form-select" id="importVehicleSelect">
+                            <option value="">Gunakan dari kolom Excel</option>
+                            @foreach (var vehicle in Model.ExistingVehicles)
+                            {
+                                <option value="@vehicle.Id" data-company-id="@vehicle.CompanyId">@vehicle.VehicleName (@vehicle.SimperType)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="question-import-row">
+                    <div class="flex-grow-1">
+                        <label asp-for="BulkExcelFile" class="form-label">File Excel .xlsx</label>
+                        <input asp-for="BulkExcelFile" class="form-control" type="file" accept=".xlsx" required />
+                    </div>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-upload me-1"></i>Upload & Import
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="premium-shell p-3 question-panel">
+            <div class="question-library-head">
+                <div>
+                    <div class="question-panel-kicker">Library Soal</div>
+                    <h6 class="mb-1">Cari dan edit soal dengan cepat</h6>
+                    <small class="text-muted">Filter company, unit, dan level soal untuk mempercepat review.</small>
+                </div>
+                <div class="question-library-count">
+                    <span id="questionVisibleCount">@Model.ExistingQuestions.Count</span> / @Model.ExistingQuestions.Count soal
+                </div>
+            </div>
+
+            <div class="question-filter-grid">
+                <div>
+                    <label class="form-label">Cari soal</label>
+                    <input type="text" id="questionSearchInput" class="form-control" placeholder="Cari teks pertanyaan atau isi opsi..." />
+                </div>
+                <div>
+                    <label class="form-label">Filter company</label>
+                    <select id="questionCompanyFilter" class="form-select">
+                        <option value="all">Semua company</option>
+                        @foreach (var company in Model.ExistingCompanies)
+                        {
+                            <option value="@company.Id">@company.CompanyName</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Filter vehicle</label>
+                    <select id="questionVehicleFilter" class="form-select">
+                        <option value="all">Semua vehicle</option>
+                        @foreach (var vehicle in Model.ExistingVehicles)
+                        {
+                            <option value="@vehicle.Id">@vehicle.VehicleName (@vehicle.SimperType)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Filter level</label>
+                    <select id="questionDifficultyFilter" class="form-select">
+                        <option value="all">Semua level</option>
+                        <option value="easy">easy</option>
+                        <option value="medium">medium</option>
+                        <option value="hard">hard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="question-library-list mt-3" id="questionLibraryList">
+                @foreach (var item in Model.ExistingQuestions)
+                {
+                    var companyName = companyMap.TryGetValue(item.CompanyId, out var cname) ? cname : $"Company {item.CompanyId}";
+                    var vehicle = vehicleMap.TryGetValue(item.VehicleId, out var existingVehicle) ? existingVehicle : null;
+                    var vehicleName = vehicle is null ? $"Vehicle {item.VehicleId}" : $"{vehicle.VehicleName} ({vehicle.SimperType})";
+                    var mediaType = !string.IsNullOrWhiteSpace(item.ImageUrl) ? "image" : (!string.IsNullOrWhiteSpace(item.VideoUrl) ? "video" : "text");
+                    <article class="question-card"
+                             data-company-id="@item.CompanyId"
+                             data-vehicle-id="@item.VehicleId"
+                             data-difficulty="@item.Difficulty"
+                             data-search="@($"{item.QuestionText} {item.OptionA} {item.OptionB} {item.OptionC} {item.OptionD} {companyName} {vehicleName}".ToLowerInvariant())"
+                             data-question-id="@item.Id"
+                             data-question-text="@item.QuestionText"
+                             data-option-a="@item.OptionA"
+                             data-option-b="@item.OptionB"
+                             data-option-c="@item.OptionC"
+                             data-option-d="@item.OptionD"
+                             data-correct-answer="@item.CorrectAnswer"
+                             data-difficulty-value="@item.Difficulty"
+                             data-image-url="@item.ImageUrl"
+                             data-video-url="@item.VideoUrl">
+                        <div class="question-card-top">
+                            <div class="question-card-id">Q-@item.Id</div>
+                            <div class="question-card-tags">
+                                <span class="question-tag company">@companyName</span>
+                                <span class="question-tag vehicle">@vehicleName</span>
+                                <span class="question-tag difficulty @item.Difficulty">@item.Difficulty</span>
+                                <span class="question-tag media">@mediaType</span>
+                            </div>
+                        </div>
+
+                        <div class="question-card-body">
+                            <div class="question-card-text">@item.QuestionText</div>
+                            <div class="question-choice-list">
+                                <div class="question-choice @(item.CorrectAnswer == "A" ? "is-correct" : string.Empty)"><strong>A.</strong> @item.OptionA</div>
+                                <div class="question-choice @(item.CorrectAnswer == "B" ? "is-correct" : string.Empty)"><strong>B.</strong> @item.OptionB</div>
+                                <div class="question-choice @(item.CorrectAnswer == "C" ? "is-correct" : string.Empty)"><strong>C.</strong> @item.OptionC</div>
+                                <div class="question-choice @(item.CorrectAnswer == "D" ? "is-correct" : string.Empty)"><strong>D.</strong> @item.OptionD</div>
+                            </div>
+                        </div>
+
+                        <div class="question-card-actions">
+                            <span class="question-answer-key">Kunci: @item.CorrectAnswer</span>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary question-edit-trigger">Edit</button>
+                                <form asp-action="DeleteQuestion" method="post" onsubmit="return confirm('Hapus soal ini?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="questionId" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </div>
+</div>

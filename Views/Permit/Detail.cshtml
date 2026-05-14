@@ -1,0 +1,398 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PermitHaulingDetailViewModel
+@{
+    ViewData["Title"] = "Ketentuan Jalan Hauling";
+    ViewData["BodyClass"] = "permit-hauling-page";
+    var permit = Model.Permit;
+}
+
+<div class="hauling-shell hauling-shell-animated"
+     data-hauling-root
+     data-hauling-reqid="@Model.ReqId"
+     data-hauling-nik="@permit?.Nik"
+     data-hauling-nama="@permit?.Nama"
+     data-hauling-submit-url="@Url.Action("SubmitAgreement", "Permit", new { reqId = Model.ReqId })"
+     data-hauling-completed="@(Model.IsHaulingCompleted ? "true" : "false")">
+    <div class="permit-bubbles" aria-hidden="true">
+        <span class="permit-bubble bubble-a"></span>
+        <span class="permit-bubble bubble-b"></span>
+        <span class="permit-bubble bubble-c"></span>
+        <span class="permit-bubble bubble-d"></span>
+        <span class="permit-bubble bubble-e"></span>
+        <span class="permit-bubble bubble-f"></span>
+    </div>
+    <section class="hauling-head-card hauling-float-in" data-hauling-float>
+        <div>
+            <span class="hauling-kicker">Permit Approval Reference</span>
+            <h1>Ketentuan Penggunaan Jalan Hauling</h1>
+            <p class="mb-0">Detail permit approval dan ketentuan jalan hauling PT Indexim Coalindo untuk kebutuhan sosialisasi dan persetujuan karyawan.</p>
+        </div>
+        <div class="hauling-req-pill">Req ID: @Model.ReqId</div>
+    </section>
+
+    @if (Model.SourceUnavailable)
+    {
+        <div class="alert alert-warning hauling-alert">@Model.ErrorMessage</div>
+    }
+    else if (permit is null)
+    {
+        <div class="alert alert-danger hauling-alert">@Model.ErrorMessage</div>
+    }
+    else
+    {
+        <section class="hauling-employee-card hauling-float-in" data-hauling-float>
+            <div class="hauling-employee-title">
+                <span class="hauling-kicker">Detail Karyawan</span>
+                <h2>@permit.Nama</h2>
+            </div>
+            <div class="hauling-detail-grid">
+                <div><span>Req ID</span><strong>@(string.IsNullOrWhiteSpace(permit.ReqId) ? "-" : permit.ReqId)</strong></div>
+                <div><span>Nomor Permit</span><strong>@(string.IsNullOrWhiteSpace(permit.Nomor) ? "-" : permit.Nomor)</strong></div>
+                <div><span>Tanggal</span><strong>@(permit.Tanggal?.ToLocalTime().ToString("dd MMM yyyy HH:mm") ?? "-")</strong></div>
+                <div><span>Akses Lokasi</span><strong>@(string.IsNullOrWhiteSpace(permit.AksesLokasi) ? "-" : permit.AksesLokasi)</strong></div>
+                <div><span>NIK</span><strong>@(string.IsNullOrWhiteSpace(permit.Nik) ? "-" : permit.Nik)</strong></div>
+                <div><span>Nama</span><strong>@(string.IsNullOrWhiteSpace(permit.Nama) ? "-" : permit.Nama)</strong></div>
+                <div><span>Perusahaan</span><strong>@(string.IsNullOrWhiteSpace(permit.Perusahaan) ? "-" : permit.Perusahaan)</strong></div>
+                <div><span>Departemen</span><strong>@(string.IsNullOrWhiteSpace(permit.Departemen) ? "-" : permit.Departemen)</strong></div>
+                <div><span>Jabatan</span><strong>@(string.IsNullOrWhiteSpace(permit.Jabatan) ? "-" : permit.Jabatan)</strong></div>
+                <div><span>Posisi</span><strong>@(string.IsNullOrWhiteSpace(permit.Posisi) ? "-" : permit.Posisi)</strong></div>
+            </div>
+        </section>
+
+        @if (Model.IsHaulingCompleted)
+        {
+            <section class="hauling-certificate-card hauling-float-in" data-hauling-float>
+                <div class="hauling-certificate-head">
+                    <span class="hauling-kicker">Official Completion Certificate</span>
+                    <h2>Sertifikat Kepatuhan Ketentuan Jalan Hauling</h2>
+                    <p class="mb-0">Karyawan ini telah menyelesaikan pembacaan ketentuan jalan hauling, memahami seluruh poin keselamatan operasional, serta persetujuan resmi telah tercatat di sistem.</p>
+                </div>
+
+                <div class="hauling-certificate-sheet">
+                    <div class="hauling-certificate-meta">
+                        <span>Certificate ID</span>
+                        <strong>@Model.CertificateId</strong>
+                        <span>Req ID</span>
+                        <strong>@Model.ReqId</strong>
+                        <span>Diterbitkan</span>
+                        <strong>@Model.CertifiedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm") WITA</strong>
+                        <span>Status</span>
+                        <strong class="is-success">KETENTUAN HAULING = TRUE</strong>
+                    </div>
+                    <div class="hauling-certificate-qr">
+                        @if (!string.IsNullOrWhiteSpace(Model.CertificateQrDataUrl))
+                        {
+                            <img src="@Model.CertificateQrDataUrl" alt="QR Verifikasi Sertifikat Ketentuan Hauling" />
+                        }
+                        <div class="hauling-certificate-qr-note">Scan QR untuk membuka sertifikat verifikasi publik.</div>
+                    </div>
+                </div>
+                <div class="hauling-certificate-link">
+                    <span>URL Verifikasi Publik</span>
+                    <a href="@Model.CertificateUrl" target="_blank" rel="noopener">@Model.CertificateUrl</a>
+                </div>
+                <div class="hauling-certificate-actions">
+                    <a class="btn btn-danger"
+                       asp-controller="Permit"
+                       asp-action="DownloadCertificatePdf"
+                       asp-route-reqId="@Model.ReqId">
+                        <i class="fas fa-file-pdf me-1"></i>Download PDF Sertifikat
+                    </a>
+                </div>
+                <div class="hauling-final-status is-ready mt-3">
+                    Pemegang sertifikat menyatakan bersedia mematuhi dan bertanggung jawab penuh atas segala ketentuan jalan hauling PT Indexim Coalindo, termasuk konsekuensi operasional dan disipliner apabila terjadi pelanggaran terhadap prosedur keselamatan yang berlaku.
+                </div>
+            </section>
+        }
+        else
+        {
+        <section class="hauling-progress-card hauling-float-in" data-hauling-progress data-hauling-float>
+            <div>
+                <span class="hauling-kicker">Reading Guidance</span>
+                <h2>Pastikan dibaca per bagian</h2>
+                <p class="mb-0">Setiap bagian harus ditandai selesai satu per satu. Progress baru dianggap lengkap jika semua bagian sudah ditinjau.</p>
+            </div>
+            <div class="hauling-progress-side">
+                <div class="hauling-progress-count"><strong data-hauling-progress-value>0</strong><span>/ 9 bagian</span></div>
+                <div class="progress hauling-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="9" aria-valuenow="0">
+                    <div class="progress-bar" data-hauling-progress-bar></div>
+                </div>
+                <button type="button" class="btn btn-primary hauling-next-btn" data-hauling-next>Fokus ke bagian berikutnya</button>
+            </div>
+        </section>
+
+        <section class="hauling-policy-card hauling-float-in" data-hauling-float>
+            <div class="hauling-policy-head">
+                <span class="hauling-kicker">HTML Policy Document</span>
+                <h2>Ketentuan Jalan Hauling PT Indexim Coalindo</h2>
+                <p>Isi di bawah disusun mengikuti dokumen resmi revisi 5 dan dibagi per bagian agar setiap poin dapat dibaca tanpa terlewat.</p>
+            </div>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="1" data-hauling-stagger style="--hauling-stagger:0;">
+                <div class="hauling-section-number">01</div>
+                <div class="hauling-section-panel">
+                    <h3>Ketentuan Umum</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                        <ul>
+                            <li>Setiap Operator/driver wajib mengenakan alat pelindung diri (APD) dengan benar dan layak untuk digunakan.</li>
+                            <li>Operator/driver telah terlatih dan memiliki SIMPER yang ditanda tangani oleh KTT, unit (LV, truck, sarana bergerak lainnya) yang dioperasikan telah lulus Komisioning/pengujian laik operasi dan selalu dilakukan P2H sebelum mengoperasikan unit.</li>
+                            <li>Driver truck produksi tidak dibenarkan membawa penumpang kecuali Trainer, Pengawas (guna keperluan orientasi) dan Mekanik (ground test).</li>
+                            <li>Untuk Driver Training wajib dilengkapi dengan bendera khusus di depan unit (bendera segi tiga warna dasar orange dengan tulisan training warna hitam).</li>
+                            <li>Sabuk Pengaman wajib selalu digunakan selama mengoperasikan unit (LV, truck, sarana bergerak lainnya).</li>
+                            <li>Tidak diperkenankan membawa penumpang melebihi kapasitas dan sesuai dengan jumlah seat belt.</li>
+                            <li>Memastikan kabin/dashboard bersih dari material, makanan dan minuman (sekalipun secarik kertas).</li>
+                            <li>Wajib berhenti selama 8 detik jika ada rambu STOP.</li>
+                            <li>Memastikan kecepatan unit saat beroperasi sesuai dengan rambu yang terpasang di jalur hauling dan mengikuti rambu-rambu keselamatan di sepanjang jalur hauling.</li>
+                            <li>Pastikan semua radio komunikasi dalam kondisi layak untuk digunakan, memiliki channel radio standar dan penggunaannya disesuaikan dengan area kerja, serta tidak menggunakan bahasa daerah.</li>
+                            <li>Lakukan pencatatan dan laporkan kepada atasan atau pengawas terkait jika ditemukan kondisi yang tidak aman.</li>
+                            <li>Memastikan kotak P3K tersedia di dalam unit.</li>
+                            <li>Dilarang menggunakan telepon genggam atau headset pada saat mengoperasikan unit.</li>
+                            <li>Dilarang merokok di dalam kabin unit.</li>
+                            <li>Sarana/truck yang telah diijinkan melintas namun bukan milik perusahaan/mitrakerja agar dilakukan pengawalan/escort sesuai prosedur.</li>
+                            <li>Dilarang membuang sampah di sepanjang jalan hauling kecuali pada tempat yang telah disediakan.</li>
+                            <li>Memberikan kesempatan kepada binatang yang dilindungi untuk menyeberang jalan hauling dan melaporkannya kepada OHS Department PT Indexim Coalindo.</li>
+                        </ul>
+                        <div class="hauling-mini-note">
+                            Penyebutan unit di area jalan hauling distandarkan sebagai berikut: Single/Double Trailer = <strong>Trailer dan kode unit</strong>, DT/LD = <strong>DT/LD dan kode unit</strong>, Grader = <strong>Grader dan kode unit</strong>, Compactor = <strong>Compact dan kode unit</strong>, Fuel Truck = <strong>FT dan kode unit</strong>, Water Truck = <strong>WT dan kode unit</strong>, Bus/Elf/LV = <strong>kode unit</strong>.
+                        </div>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="2" data-hauling-stagger style="--hauling-stagger:1;">
+                <div class="hauling-section-number">02</div>
+                <div class="hauling-section-panel">
+                    <h3>Pengoperasian Unit</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                        <ul>
+                            <li>Memastikan bahwa daerah di depan dan di belakang unit aman untuk bergerak.</li>
+                            <li>Lampu depan dan rotary harus menyala selama beroperasi.</li>
+                            <li>Mematuhi peraturan lalu lintas yang berlaku di sepanjang jalan hauling.</li>
+                            <li>Gunakan tanda klakson: 1x Engine Start, 2x Maju, 3x Mundur dan klakson panjang saat kondisi emergency.</li>
+                            <li>Mulai dengan gigi rendah (gear) dan selalu menyesuaikan dengan area dan rambu gear yang berlaku.</li>
+                            <li>Selalu waspada saat menjelang petang, pagi dan malam hari dan dibutuhkan konsentrasi yang tinggi.</li>
+                            <li>Berhenti mengoperasikan unit jika jarak pandang kurang dari 70m.</li>
+                            <li>Dalam keadaan darurat, driver tetap bertahan di kabin, tidak boleh meloncat dari unit dalam kondisi unit masih bergerak.</li>
+                            <li>Tidak menggunakan lampu hazard jika berkendara kecuali dalam keadaan kabut, debu dan pada saat pengawalan unit.</li>
+                            <li>Tidak boleh mengoperasikan unit dalam keadaan fatigue dan di bawah pengaruh obat-obatan atau alkohol.</li>
+                            <li>Selalu mengendarai kendaraan di jalur sebelah kiri kecuali dalam kondisi tertentu sesuai petunjuk traffic man/rambu.</li>
+                            <li>Selalu mengemudi dengan memperhatikan kondisi jalan, jika jalan basah dan licin, laju unit diperlambat atau berhenti.</li>
+                            <li>Mengoperasikan unit menyesuaikan dengan rambu-rambu gear yang terpasang. Ketika memasuki jalan menanjak atau menurun, gunakan exhaust brake (rem kaki) jika diperlukan.</li>
+                            <li>Semua unit harus menjaga jarak aman: Non Trailer (Bus, ELF, LV & DT) 70m dan Single/Double Trailer 180m.</li>
+                            <li>Kaca kabin depan, spion, lampu, dan nomor lambung unit harus dalam keadaan bersih.</li>
+                        </ul>
+                        <div class="hauling-subgrid">
+                            <div class="hauling-subcard">
+                                <h4>Aturan Parkir</h4>
+                                <ul>
+                                    <li>Unit wajib parkir di area datar. Jika terpaksa di daerah landai/miring, gunakan parkir brake dan ganjal roda unit.</li>
+                                    <li>Jangan memarkir unit di belakang atau depan alat berat, lakukan komunikasi 2 arah pada operator alat berat tersebut.</li>
+                                    <li>Unit kecil (LV, Bus Elf) tidak boleh diparkir dalam radius 25 meter dari alat berat, kecuali kondisi maintenance/breakdown dengan komunikasi 2 arah.</li>
+                                    <li>Semua unit dan peralatan harus diparkir dalam keadaan mesin dimatikan dan hand brake terpasang.</li>
+                                    <li>Jangan istirahat atau duduk di bawah atau di sekitar unit/alat berat yang sedang diparkir.</li>
+                                    <li>Jangan memarkir unit di area rambu larangan parkir, akses peralatan darurat, tempat evakuasi, tikungan, atau belokan tajam.</li>
+                                </ul>
+                            </div>
+                            <div class="hauling-subcard">
+                                <h4>Manuver Mundur dan Memutar</h4>
+                                <ul>
+                                    <li>Pastikan area sekitar atau di belakang unit bebas/aman dari hambatan apapun.</li>
+                                    <li>Pengemudi harus membunyikan klakson 3 kali bunyi pendek sebelum melakukan gerak mundur.</li>
+                                    <li>Jika ragu-ragu gunakan bantuan orang lain/spotter dan bersikap waspada dalam setiap gerakan mundur.</li>
+                                    <li>Berhati-hati ketika mundur ke arah tempat pembuangan/penumpukan material.</li>
+                                    <li>Saat memutar, pastikan jalannya lurus dan cukup lebar, jalan aman, tidak ada unit dari arah depan, nyalakan sign kanan, dan lakukan komunikasi 2 arah.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="3" data-hauling-stagger style="--hauling-stagger:2;">
+                <div class="hauling-section-number">03</div>
+                <div class="hauling-section-panel">
+                    <h3>Prosedur Mendahului</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Batas kecepatan untuk mendahului unit (overtaking) tidak boleh melebihi batas maksimal kecepatan yang telah ditentukan sesuai rambu.</li>
+                        <li>Mendahului unit lain harus dilakukan dari sebelah kanan jalan/jalur.</li>
+                        <li>Tidak boleh mendahului unit dalam kondisi jalan berdebu atau berkabut kecuali mendapatkan informasi dari traffic man.</li>
+                        <li>Wajib melakukan komunikasi 2 arah dan telah mendapat ijin dari unit yang akan didahului melalui radio atau sign kiri.</li>
+                        <li>Dilarang mendahului unit lain pada jalan tanjakan, turunan, tikungan, dan blind spot.</li>
+                        <li>Sesama unit trailer dilarang saling mendahului, kecuali unit dalam keadaan breakdown/parkir.</li>
+                        <li>Tata cara komunikasi overtaking: lakukan di tempat yang telah ditentukan, minta izin dengan menyebut type unit dan kode nomor lambung, dan hanya bergerak setelah mendapatkan izin atau sign kiri.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="4" data-hauling-stagger style="--hauling-stagger:3;">
+                <div class="hauling-section-number">04</div>
+                <div class="hauling-section-panel">
+                    <h3>Area Road Maintenance</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Lakukan komunikasi 2 arah dengan operator A2B di area maintenance.</li>
+                        <li>Jika ada unit dari arah yang berlawanan, lakukan komunikasi dengan operator unit tersebut.</li>
+                        <li>Pastikan overtaking bukan di tikungan tertutup dengan pandangan terhalang (blind spot).</li>
+                        <li>Pastikan overtaking bukan di area yang mendekati persimpangan jalan (±150 meter sebelum persimpangan).</li>
+                        <li>Batas kecepatan maksimum saat melewati area maintenance adalah 20 km/jam.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="5" data-hauling-stagger style="--hauling-stagger:4;">
+                <div class="hauling-section-number">05</div>
+                <div class="hauling-section-panel">
+                    <h3>Unit Breakdown</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Jika unit rusak dan mengganggu jalan, pasang lampu bahaya/hazard atau tanda lain seperti safety cone, drum bereflektor, atau lampu flip flop minimal 15 meter di depan dan belakang unit, gunakan hand brake dan ganjal ban.</li>
+                        <li>Driver harus segera menginformasikan kepada pengawas untuk perbaikan unit dengan menyampaikan lokasi dan kerusakan yang terjadi.</li>
+                        <li>Batasan waktu evakuasi unit breakdown pada tikungan maksimal 3 jam dan pada jalan lurus maksimal 6 jam.</li>
+                        <li>Jika tidak ada tindakan perbaikan sesuai batas waktu, wajib disediakan traffic man dan penanda keselamatan lengkap.</li>
+                        <li>Jika melebihi batas waktu yang telah ditentukan, maka PJO wajib melaporkan ke PJA dengan tembusan ke KTT.</li>
+                        <li>Mengikuti arahan dari traffic man yang bertugas mengatur lalu lintas hauling.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="6" data-hauling-stagger style="--hauling-stagger:5;">
+                <div class="hauling-section-number">06</div>
+                <div class="hauling-section-panel">
+                    <h3>Simpang Warga</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Saat mendekati area simpang warga, operator wajib melakukan komunikasi 2 arah dengan security 150 meter sebelum mendekati simpang warga dan wajib mematuhi rambu batas kecepatan yang telah ditentukan.</li>
+                        <li>Di area simpang warga yang terpasang portal aktif maka security memprioritaskan unit trailer tetap jalan dengan menutup portal ke arah warga sampai unit trailer melewati simpang warga.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="7" data-hauling-stagger style="--hauling-stagger:6;">
+                <div class="hauling-section-number">07</div>
+                <div class="hauling-section-panel">
+                    <h3>Memasuki Rest Area</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Apabila operator merasa fatigue (lelah dan ngantuk), masuk ke rest area yang terdekat.</li>
+                        <li>Lakukan komunikasi 2 arah sebelum masuk rest area.</li>
+                        <li>Lakukan komunikasi dengan pengawas (Group Leader) mitra kerja masing-masing untuk pelaporan fatigue.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="8" data-hauling-stagger style="--hauling-stagger:7;">
+                <div class="hauling-section-number">08</div>
+                <div class="hauling-section-panel">
+                    <h3>Kondisi Jalan Licin / Emergency</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Kecepatan maksimal 20 km/jam.</li>
+                        <li>Jarak antrian antar unit menyesuaikan informasi pengawas atau traffic man.</li>
+                        <li>Tidak boleh saling mendahului, kecuali diinstruksikan oleh pengawas atau traffic man.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="hauling-policy-section hauling-stagger-in" data-hauling-section data-section-index="9" data-hauling-stagger style="--hauling-stagger:8;">
+                <div class="hauling-section-number">09</div>
+                <div class="hauling-section-panel">
+                    <h3>Keadaan Emergency</h3>
+                    <div class="hauling-scroll-box" data-hauling-scrollbox>
+                    <ul>
+                        <li>Semua unit wajib memberikan jalan kepada ambulance, sarana ERT, atau LV yang membawa korban gawat darurat.</li>
+                        <li>Pastikan evakuator selalu melakukan komunikasi kepada pengguna jalan hauling lainnya untuk memberikan jalan.</li>
+                    </ul>
+                    </div>
+                    <div class="hauling-read-hint" data-hauling-read-hint>Scroll sampai bawah dan baca minimal beberapa detik untuk membuka tombol konfirmasi.</div>
+                    <div class="hauling-section-action">
+                        <button type="button" class="btn btn-outline-primary" data-hauling-complete>Saya sudah membaca bagian ini</button>
+                    </div>
+                </div>
+            </article>
+
+            <section class="hauling-approval-box" data-hauling-final>
+                <h3>Pernyataan Kepatuhan</h3>
+                <p>Ketentuan-ketentuan ini dibuat atas saran dan kesepakatan perusahaan dan mitrakerja serta berlaku bagi semua pemegang SIMPER terutama pengguna jalan hauling di PT Indexim Coalindo. Pelanggaran ketentuan ini akan mendapatkan teguran, pelubangan SIMPER, pencabutan SIMPER hingga PHK.</p>
+                <div class="hauling-signature-grid">
+                    <div class="hauling-signature-card">
+                        <span>Ditetapkan oleh</span>
+                        <strong>Hendrato Agung Gunawan</strong>
+                        <small>Kepala Teknik Tambang PT Indexim Coalindo</small>
+                    </div>
+                    <div class="hauling-signature-card">
+                        <span>Status Pemahaman</span>
+                        <strong>Dipahami dan Disetujui</strong>
+                        <small>Melalui akses permit approval dengan Req ID terkait</small>
+                    </div>
+                </div>
+                <div class="hauling-quiz-card" data-hauling-quiz>
+                    <div class="hauling-quiz-head">
+                        <span class="hauling-kicker">Quiz Verifikasi</span>
+                        <h4>Jawab 2 pertanyaan dari materi</h4>
+                        <p class="mb-0">Tombol persetujuan akhir hanya aktif jika seluruh bagian selesai dibaca dan dua pertanyaan ini dijawab dengan benar.</p>
+                    </div>
+                    <div class="hauling-quiz-list" data-hauling-quiz-list></div>
+                    <div class="hauling-quiz-feedback" data-hauling-quiz-feedback>
+                        Quiz belum dikerjakan.
+                    </div>
+                </div>
+                <div class="hauling-agreement-card">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="haulingAgreementCheck" data-hauling-agreement disabled>
+                        <label class="form-check-label" for="haulingAgreementCheck">
+                            <span class="hauling-agreement-statement">
+                                Saya menyatakan telah membaca seluruh ketentuan penggunaan jalan hauling PT Indexim Coalindo secara penuh, memahami setiap poin yang berlaku, bersedia mematuhinya, dan menerima tanggung jawab penuh atas tindakan saya apabila terjadi insiden akibat pelanggaran terhadap ketentuan ini.
+                            </span>
+                        </label>
+                    </div>
+                    <div class="hauling-agreement-note">Checkbox ini baru aktif setelah seluruh bagian selesai dibaca dan ditandai satu per satu.</div>
+                    <div class="hauling-agreement-action">
+                        <button type="button" class="btn btn-success btn-lg hauling-agree-btn" data-hauling-agree-button disabled>Saya menyetujuinya</button>
+                    </div>
+                </div>
+                <div class="hauling-final-status" data-hauling-final-status>
+                    Semua bagian belum selesai dibaca.
+                </div>
+            </section>
+        </section>
+        }
+    }
+</div>

@@ -1,0 +1,66 @@
+@model SimperSecureOnlineTestSystem.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+    ViewData["BodyClass"] = "premium-login-page";
+    ViewData["HidePublicChrome"] = true;
+}
+
+<section class="premium-login-shell participant-flow">
+    <div class="premium-login-bg-orb orb-a" aria-hidden="true"></div>
+    <div class="premium-login-bg-orb orb-b" aria-hidden="true"></div>
+    <div class="premium-login-bg-orb orb-c" aria-hidden="true"></div>
+    <div class="container-fluid premium-login-container">
+        <div class="premium-auth-shell premium-login-auth-shell" data-animate="reveal">
+            <div class="premium-auth-panel premium-auth-intro premium-login-intro">
+                <div class="premium-auth-kicker">Global Assessment Console</div>
+                <h1 class="premium-auth-title premium-login-title">Secure Operations Login</h1>
+                <p class="premium-auth-copy">
+                    Akses workspace profesional untuk administrator, assessor, dan instruktur.
+                    Kelola teori, distribusi praktek, serta monitoring evaluasi dalam satu command center.
+                </p>
+                <div class="premium-auth-feature-list premium-login-feature-list">
+                    <div class="premium-auth-feature">
+                        <strong>Live Monitoring</strong>
+                        <span>Pantau aktivitas ujian dan status sesi secara real-time.</span>
+                    </div>
+                    <div class="premium-auth-feature">
+                        <strong>Centralized Workflow</strong>
+                        <span>Integrasi jadwal, bank soal, penilaian, dan rekap hasil.</span>
+                    </div>
+                    <div class="premium-auth-feature">
+                        <strong>Enterprise Grade Access</strong>
+                        <span>Role-based access untuk Administrator, Company Admin, dan Instruktur.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="premium-auth-panel premium-auth-form-wrap premium-login-form-wrap">
+                <div class="premium-auth-avatar">
+                    <img src="~/images/profile-avatar-premium.svg" alt="Premium admin avatar" />
+                </div>
+                <h5 class="mb-1 text-center">Sign In</h5>
+                <p class="text-muted text-center small mb-3">Masuk ke dashboard operasional assessment.</p>
+                <div class="alert alert-light border small py-2 premium-auth-alert">
+                    Halaman ini untuk <strong>Admin, Company Admin, dan Instruktur</strong>. Peserta masuk melalui portal Ref ID.
+                </div>
+                <form asp-action="Login" method="post" class="participant-form" data-loading-form="true">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                    <div class="mb-3">
+                        <label asp-for="Username" class="form-label"></label>
+                        <input asp-for="Username" class="form-control premium-input" autocomplete="username" placeholder="Masukkan username" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control premium-input" autocomplete="current-password" placeholder="Masukkan password" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" data-loading-button="Masuk ke Dashboard">Masuk ke Dashboard</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

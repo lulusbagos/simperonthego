@@ -1,0 +1,148 @@
+@model SimperSecureOnlineTestSystem.ViewModels.ExamStartViewModel
+@{
+    ViewData["Title"] = "Exam Session";
+}
+
+<div class="exam-shell participant-flow">
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning border-0 shadow-sm participant-card mb-3" role="alert">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="exam-head card border-0 mb-3 participant-card exam-hero-card" data-animate="reveal">
+        <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <div class="exam-hero-kicker">Simper On The Go</div>
+                <h5 class="mb-1 fw-bold">Sesi Ujian Aktif</h5>
+                <div class="small text-muted">Kerjakan soal dengan fokus. Kamera wajib aktif, tab switch dipantau, dan progres jawaban tampil real-time.</div>
+            </div>
+            <div class="exam-timer-box">
+                <div class="small text-uppercase fw-semibold text-muted">Waktu Mengerjakan</div>
+                <span class="exam-duration-pill">60 Menit</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="exam-mobile-summary d-lg-none participant-card" data-animate="reveal" data-animate-delay="30">
+        <div class="exam-mobile-summary-item">
+            <span>Waktu</span>
+            <strong>60 Menit</strong>
+        </div>
+        <div class="exam-mobile-summary-item">
+            <span>Progress</span>
+            <strong id="questionProgressTextMobile">Question 1/1</strong>
+        </div>
+        <div class="exam-mobile-summary-item">
+            <span>Camera</span>
+            <strong id="cameraStatusMobile">Checking...</strong>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-9 col-lg-8">
+            <div class="card border-0 shadow-sm mb-3 participant-card exam-workspace-card" data-animate="reveal" data-animate-delay="60">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 exam-workspace-head">
+                    <span class="fw-semibold">Question Workspace</span>
+                    <span class="exam-progress-pill" id="questionProgressText">Question 1/1</span>
+                </div>
+                <div class="card-body p-4 exam-question-body" id="questionContainer">
+                    <div class="exam-loading-state">
+                        <div class="exam-loading-orb"></div>
+                        <div class="text-muted">Memuat soal ujian...</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between exam-question-footer">
+                    <button class="btn btn-outline-secondary px-4" id="prevBtn">Previous</button>
+                    <button class="btn btn-outline-primary px-4" id="nextBtn">Next</button>
+                </div>
+            </div>
+
+            <form asp-action="Submit" method="post" id="submitForm" class="exam-submit-bar">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="token" value="@Model.Token" />
+                <button type="submit" class="btn btn-success px-4">Submit & Lihat Nilai</button>
+            </form>
+
+            <div class="exam-mobile-submit-bar d-lg-none">
+                <button type="button" class="btn btn-outline-secondary exam-mobile-nav-btn" id="mobilePrevBtn">Prev</button>
+                <button type="button" class="btn btn-outline-primary exam-mobile-nav-btn" id="mobileNextBtn">Next</button>
+                <button type="submit" form="submitForm" class="btn btn-success exam-mobile-submit-btn">Submit</button>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-4">
+            <div class="card border-0 shadow-sm mb-3 participant-card exam-side-card" data-animate="reveal" data-animate-delay="100">
+                <div class="card-header bg-white fw-semibold">Navigasi Soal</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span>Terjawab: <strong id="answeredCountLabel">0</strong></span>
+                        <span>Total: <strong id="totalCountLabel">0</strong></span>
+                    </div>
+                    <div class="progress mb-3" style="height:8px;">
+                        <div class="progress-bar bg-success" id="answeredProgressBar" style="width:0%"></div>
+                    </div>
+                    <div class="question-nav-grid" id="questionNavGrid">
+                        <div class="small text-muted">Memuat nomor soal...</div>
+                    </div>
+                    <div class="question-nav-legend mt-3 small">
+                        <span class="legend-dot current"></span>Aktif
+                        <span class="legend-dot answered ms-3"></span>Sudah Dijawab
+                        <span class="legend-dot pending ms-3"></span>Belum Dijawab
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-3 participant-card exam-side-card" data-animate="reveal" data-animate-delay="120">
+                <div class="card-header bg-white fw-semibold">Security Status</div>
+                <div class="card-body">
+                    <div class="exam-security-stack">
+                        <div class="exam-security-item">
+                            <span>Camera</span>
+                            <span id="cameraStatus" class="badge bg-secondary">Checking...</span>
+                        </div>
+                        <div class="exam-security-item">
+                            <span>Tab Switch</span>
+                            <strong id="tabSwitchCount">0</strong>
+                        </div>
+                        <div class="exam-security-item">
+                            <span>Token</span>
+                            <strong class="text-success">Valid</strong>
+                        </div>
+                    </div>
+                    <div class="exam-camera-note mt-3">Izinkan kamera saat browser meminta permission. Jika ditolak, klik tombol di bawah ini lalu izinkan ulang.</div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-3 w-100" id="retryCameraBtn">Izinkan Ulang Kamera</button>
+                </div>
+            </div>
+
+            <div class="camera-preview-card participant-card" data-animate="reveal" data-animate-delay="140">
+                <div class="camera-preview-card-head">
+                    <strong>Live Preview</strong>
+                    <span>Peserta</span>
+                </div>
+                <video id="cameraPreview" class="w-100 rounded border shadow-sm" autoplay muted playsinline></video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="exam-security-overlay" id="examSecurityOverlay" hidden>
+    <div class="exam-security-overlay-card">
+        <div class="exam-empty-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <h5 class="mb-2">Fokus Ujian Terdeteksi Keluar</h5>
+        <p class="mb-3">Sistem mendeteksi Anda membuka tab lain, berpindah aplikasi, atau keluar dari layar ujian. Aktivitas ini tercatat di dashboard admin.</p>
+        <button type="button" class="btn btn-primary" id="resumeExamBtn">Saya Kembali ke Ujian</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        window.examConfig = {
+            token: "@Model.Token",
+            endTimeUtc: "@Model.EndTime.ToString("O")"
+        };
+    </script>
+    <script src="~/js/exam-session.js" asp-append-version="true"></script>
+}

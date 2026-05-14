@@ -1,0 +1,337 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PracticalTemplateManageViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Template Praktek";
+    var activeTemplates = Model.ExistingTemplates.Count(x => x.IsActive);
+    var archivedTemplates = Model.ExistingTemplates.Count - activeTemplates;
+    var usedTemplates = Model.ExistingTemplates.Count(x => x.SessionCount > 0);
+    var numericTemplates = Model.ExistingTemplates.Count(x => x.ScoringMode == PracticalScoringMode.Numeric);
+    var gradeTemplates = Model.ExistingTemplates.Count(x => x.ScoringMode == PracticalScoringMode.Grade);
+    var editMode = Model.TemplateId.HasValue && Model.TemplateId.Value > 0;
+}
+
+<div class="page-head">
+    <div>
+        <h4 class="page-title">Template Penilaian Praktek</h4>
+        <p class="page-subtitle">Kelola template per unit dengan workflow yang jelas: authoring, aktivasi, arsip, dan kontrol riwayat penggunaan instruktur.</p>
+    </div>
+    <div class="toolbar d-flex gap-2 flex-wrap">
+        <span class="metric-chip">Aktif: @activeTemplates</span>
+        <span class="metric-chip">Arsip: @archivedTemplates</span>
+        <span class="metric-chip">Dipakai: @usedTemplates</span>
+        <span class="metric-chip">Angka: @numericTemplates</span>
+        <span class="metric-chip">Huruf: @gradeTemplates</span>
+    </div>
+</div>
+
+@if (TempData["PracticalSuccess"] is string practicalSuccess)
+{
+    <div class="alert alert-success">@practicalSuccess</div>
+}
+
+@if (TempData["PracticalError"] is string practicalError)
+{
+    <div class="alert alert-danger">@practicalError</div>
+}
+
+<div class="practical-hero mb-3">
+    <div class="practical-hero-card">
+        <div class="practical-hero-kicker">Practical Governance</div>
+        <h5 class="mb-2">Satu unit hanya memakai satu template aktif pada satu waktu.</h5>
+        <p class="mb-0 text-muted">Template yang sudah dipakai instruktur tetap tersimpan sebagai riwayat. Jika butuh perubahan struktur item, buat versi baru agar hasil penilaian lama tetap aman.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xxl-5">
+        <div class="card practical-panel practical-template-workbench h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>@(editMode ? "Edit Template" : "Buat Template Baru")</span>
+                @if (editMode)
+                {
+                    <a asp-action="PracticalTemplates" class="btn btn-sm btn-outline-secondary">Batal Edit</a>
+                }
+            </div>
+            <div class="card-body">
+                <form asp-action="PracticalTemplates" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="TemplateId" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="practical-form-grid">
+                        @if (Model.IsAdministrator)
+                        {
+                            <div>
+                                <label asp-for="CompanyId" class="form-label">Company</label>
+                                <select asp-for="CompanyId" class="form-select" id="practicalCompanyId">
+                                    <option value="">Pilih Company</option>
+                                    @foreach (var company in Model.ExistingCompanies.OrderBy(x => x.CompanyName))
+                                    {
+                                        <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input asp-for="CompanyId" type="hidden" id="practicalCompanyId" />
+                        }
+
+                        <div>
+                            <label asp-for="VehicleId" class="form-label">Unit / Vehicle</label>
+                            <select asp-for="VehicleId" class="form-select" id="practicalVehicleId">
+                                <option value="">Pilih Unit</option>
+                                @foreach (var vehicle in Model.ExistingVehicles.OrderBy(x => x.VehicleName))
+                                {
+                                    <option value="@vehicle.Id" data-company-id="@vehicle.CompanyId">CID @vehicle.CompanyId - @vehicle.VehicleName (@vehicle.SimperType)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="practical-form-span-2">
+                            <label asp-for="TemplateName" class="form-label">Nama Template</label>
+                            <input asp-for="TemplateName" class="form-control" placeholder="Contoh: Evaluasi Operator HD 785 - Site Standard" />
+                        </div>
+
+                        <div>
+                            <label asp-for="ScoringMode" class="form-label">Mode Nilai</label>
+                            <select asp-for="ScoringMode" class="form-select" id="practicalScoringMode">
+                                <option value="@PracticalScoringMode.Numeric">Angka</option>
+                                <option value="@PracticalScoringMode.Grade">Huruf</option>
+                            </select>
+                        </div>
+
+                        <div id="passingScoreWrap">
+                            <label asp-for="PassingScore" class="form-label">Nilai Lulus</label>
+                            <input asp-for="PassingScore" type="number" step="0.01" class="form-control" placeholder="Contoh: 75" />
+                        </div>
+
+                        <div class="d-none" id="passingGradeWrap">
+                            <label asp-for="PassingGrade" class="form-label">Passing Grade</label>
+                            <input asp-for="PassingGrade" class="form-control text-uppercase" placeholder="Contoh: B" />
+                        </div>
+
+                        <div class="d-none" id="gradeOptionsWrap">
+                            <label asp-for="GradeOptions" class="form-label">Daftar Grade</label>
+                            <input asp-for="GradeOptions" class="form-control text-uppercase" placeholder="A,B,C,D" />
+                        </div>
+
+                        <div class="practical-form-span-2">
+                            <label asp-for="ItemDefinitions" class="form-label">Item Penilaian</label>
+                            <textarea asp-for="ItemDefinitions" class="form-control practical-template-textarea" rows="10"></textarea>
+                            <div class="form-text">Format per baris: <code>Section|Item Penilaian|Bobot</code></div>
+                        </div>
+                    </div>
+
+                    <div class="practical-template-guide mt-3">
+                        <div class="practical-template-guide-title">Contoh Format Cepat</div>
+                        <div class="practical-template-guide-list">
+                            <span><code>Persiapan|Pre-start inspection|30</code></span>
+                            <span><code>Operasional|Kontrol unit saat manuver|40</code></span>
+                            <span><code>Safety|Kepatuhan SOP keselamatan|30</code></span>
+                        </div>
+                    </div>
+
+                    <div class="practical-inline-note mt-3">
+                        Template aktif lama pada unit yang sama akan otomatis diarsipkan saat Anda mengaktifkan versi terbaru.
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3 flex-wrap">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="fas fa-layer-group me-1"></i>@(editMode ? "Perbarui Template" : "Simpan Template")
+                        </button>
+                        @if (editMode)
+                        {
+                            <a asp-action="PracticalTemplates" class="btn btn-outline-secondary">Reset Form</a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xxl-7">
+        <div class="card practical-panel h-100">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div>
+                    <div class="fw-semibold">Library Template</div>
+                    <small class="text-muted">Cari, review, edit, aktifkan, arsipkan, atau hapus template yang belum dipakai.</small>
+                </div>
+                <div class="practical-library-tools">
+                    <input type="search" id="practicalTemplateSearch" class="form-control" placeholder="Cari company, unit, atau nama template..." />
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="practical-template-library" id="practicalTemplateLibrary">
+                    @if (Model.ExistingTemplates.Count == 0)
+                    {
+                        <div class="practical-empty-state">
+                            <i class="fas fa-clipboard-list"></i>
+                            <div>
+                                <strong>Belum ada template praktek.</strong>
+                                <div class="text-muted">Buat template pertama agar admin bisa mendistribusikan form ke instruktur.</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var template in Model.ExistingTemplates)
+                        {
+                            var canChangeStructure = template.SessionCount == 0;
+                            <article class="practical-template-card @(template.IsActive ? "is-active" : string.Empty)"
+                                     data-template-search="@($"{template.CompanyName} {template.VehicleName} {template.TemplateName} {template.ScoringMode}".ToLowerInvariant())">
+                                <div class="practical-template-head">
+                                    <div>
+                                        <div class="practical-template-kicker">@template.CompanyName</div>
+                                        <h6 class="mb-1">@template.TemplateName</h6>
+                                        <div class="text-muted small">@template.VehicleName</div>
+                                    </div>
+                                    <div class="practical-template-tags">
+                                        <span class="badge @(template.IsActive ? "text-bg-success" : "text-bg-secondary")">@(template.IsActive ? "Active" : "Archived")</span>
+                                        <span class="badge text-bg-light">@((template.ScoringMode == PracticalScoringMode.Numeric) ? "Angka" : "Huruf")</span>
+                                    </div>
+                                </div>
+
+                                <div class="practical-template-meta">
+                                    <span>Dipakai sesi: <strong>@template.SessionCount</strong></span>
+                                    <span>Item: <strong>@template.Items.Count</strong></span>
+                                    @if (template.ScoringMode == PracticalScoringMode.Numeric)
+                                    {
+                                        <span>Lulus: <strong>@template.PassingScore</strong></span>
+                                    }
+                                    else
+                                    {
+                                        <span>Lulus: <strong>@template.PassingGrade</strong></span>
+                                        <span>Grade: <strong>@template.GradeOptions</strong></span>
+                                    }
+                                    <span>Dibuat: <strong>@template.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</strong></span>
+                                </div>
+
+                                <div class="practical-item-list">
+                                    @foreach (var item in template.Items)
+                                    {
+                                        <div class="practical-item-row">
+                                            <div>
+                                                <div class="practical-item-section">@item.SectionName</div>
+                                                <div class="practical-item-label">@item.ItemLabel</div>
+                                            </div>
+                                            <span class="practical-item-weight">Bobot @item.Weight</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="practical-template-actions">
+                                    @if (canChangeStructure)
+                                    {
+                                        <a asp-action="PracticalTemplates" asp-route-editId="@template.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-pen-to-square me-1"></i>Edit
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Template yang sudah dipakai tidak bisa diedit.">
+                                            <i class="fas fa-lock me-1"></i>Terkunci
+                                        </button>
+                                    }
+
+                                    <form asp-action="SetPracticalTemplateStatus" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="templateId" value="@template.Id" />
+                                        <input type="hidden" name="isActive" value="@(template.IsActive ? "false" : "true")" />
+                                        <button type="submit" class="btn btn-sm @(template.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                            <i class="fas @(template.IsActive ? "fa-box-archive" : "fa-bolt") me-1"></i>@(template.IsActive ? "Arsipkan" : "Aktifkan")
+                                        </button>
+                                    </form>
+
+                                    @if (canChangeStructure)
+                                    {
+                                        <form asp-action="DeletePracticalTemplate" method="post" class="d-inline"
+                                              onsubmit="return confirm('Hapus template ini? Tindakan ini tidak bisa dibatalkan.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="templateId" value="@template.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-can me-1"></i>Hapus
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const mode = document.getElementById("practicalScoringMode");
+            const passingScoreWrap = document.getElementById("passingScoreWrap");
+            const passingGradeWrap = document.getElementById("passingGradeWrap");
+            const gradeOptionsWrap = document.getElementById("gradeOptionsWrap");
+            const companySelect = document.getElementById("practicalCompanyId");
+            const vehicleSelect = document.getElementById("practicalVehicleId");
+            const searchInput = document.getElementById("practicalTemplateSearch");
+            const cards = Array.from(document.querySelectorAll("#practicalTemplateLibrary .practical-template-card"));
+
+            const syncScoringMode = () => {
+                if (!mode) {
+                    return;
+                }
+
+                const isGrade = mode.value === "@PracticalScoringMode.Grade";
+                passingScoreWrap?.classList.toggle("d-none", isGrade);
+                passingGradeWrap?.classList.toggle("d-none", !isGrade);
+                gradeOptionsWrap?.classList.toggle("d-none", !isGrade);
+            };
+
+            const syncVehicleOptions = () => {
+                if (!companySelect || !vehicleSelect) {
+                    return;
+                }
+
+                const selectedCompanyId = companySelect.value;
+                let hasVisibleSelectedOption = false;
+
+                Array.from(vehicleSelect.options).forEach((option, index) => {
+                    if (index === 0) {
+                        option.hidden = false;
+                        return;
+                    }
+
+                    const optionCompanyId = option.getAttribute("data-company-id");
+                    const shouldShow = !selectedCompanyId || optionCompanyId === selectedCompanyId;
+                    option.hidden = !shouldShow;
+
+                    if (shouldShow && option.selected) {
+                        hasVisibleSelectedOption = true;
+                    }
+                });
+
+                if (!hasVisibleSelectedOption) {
+                    const firstVisible = Array.from(vehicleSelect.options).find((option, index) => index > 0 && !option.hidden);
+                    vehicleSelect.value = firstVisible?.value || "";
+                }
+            };
+
+            const syncSearch = () => {
+                const keyword = (searchInput?.value || "").trim().toLowerCase();
+                cards.forEach((card) => {
+                    const haystack = card.getAttribute("data-template-search") || "";
+                    card.style.display = !keyword || haystack.includes(keyword) ? "" : "none";
+                });
+            };
+
+            mode?.addEventListener("change", syncScoringMode);
+            companySelect?.addEventListener("change", syncVehicleOptions);
+            searchInput?.addEventListener("input", syncSearch);
+
+            syncScoringMode();
+            syncVehicleOptions();
+            syncSearch();
+        })();
+    </script>
+}

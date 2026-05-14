@@ -1,0 +1,202 @@
+@model SimperSecureOnlineTestSystem.ViewModels.FinalStatusViewModel
+@{
+    ViewData["Title"] = "Status Akhir Peserta";
+    var ordered = Model.Rows
+        .OrderBy(x => x.FinalStatus == "LULUS" ? 0 : x.FinalStatus == "PROSES" ? 1 : x.FinalStatus == "BELUM MULAI" ? 2 : 3)
+        .ThenByDescending(x => x.LatestActivityAt)
+        .ThenBy(x => x.Nrp)
+        .ThenBy(x => x.VehicleName)
+        .ToList();
+}
+
+<div class="results-page-shell">
+<div class="page-head results-page-head">
+    <div class="schedule-hero-copy">
+        <h4 class="page-title">Status Akhir Peserta</h4>
+        <p class="page-subtitle">Rekap ringkas teori dan praktek dalam satu tampilan.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Total Baris</span>
+                <strong>@Model.TotalRows</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Lulus Final</span>
+                <strong>@Model.PassedRows</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Tidak Lulus</span>
+                <strong>@Model.FailedRows</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <div class="schedule-date-form">
+            <label class="schedule-toolbar-label">Scope</label>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="metric-chip">@(Model.IsAdministrator ? "Administrator" : "Company")</span>
+                <span class="metric-chip">Complete: @Model.CompleteRows</span>
+                <span class="metric-chip">In Progress: @Model.InProgressRows</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="premium-shell results-filter-shell p-3 mb-3 results-filter-card">
+    <div class="results-filter-grid">
+        <div class="results-filter-block search">
+            <label class="form-label small text-muted mb-1">Cari NIK/NRP, nama, unit, company, atau instruktur</label>
+            <input type="text" class="form-control" name="keyword" value="@Model.SearchTerm" placeholder="Cari peserta, unit, company, atau instruktur" />
+        </div>
+        <div class="results-filter-block">
+            <label class="form-label small text-muted mb-1">Tanggal Dari</label>
+            <input type="date" class="form-control" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="results-filter-block">
+            <label class="form-label small text-muted mb-1">Tanggal Sampai</label>
+            <input type="date" class="form-control" name="dateTo" value="@Model.DateTo?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="results-filter-block actions">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a asp-action="Results" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </div>
+</form>
+
+<div class="premium-shell p-3 results-table-shell">
+    <div class="results-table-head">
+        <div>
+            <h6 class="mb-1">Matriks Hasil Peserta</h6>
+            <small class="text-muted">Gunakan aksi untuk membuka detail teori, praktek, atau summary.</small>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table premium-table align-middle results-table mb-0 results-table-premium">
+            <thead>
+                <tr>
+                    <th>Peserta</th>
+                    <th>Company</th>
+                    <th>Unit</th>
+                    <th>Teori</th>
+                    <th>Praktek</th>
+                    <th>Final</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ordered.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            Belum ada data hasil teori atau praktek pada filter ini.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in ordered)
+                    {
+                        var finalClass = item.FinalStatus switch
+                        {
+                            "LULUS" => "pass",
+                            "TIDAK LULUS" => "fail",
+                            "PROSES" => "progress",
+                            _ => "neutral"
+                        };
+
+                        var theoryText = item.TheoryScore.HasValue ? $"{item.TheoryScore:0.##}" : "-";
+                        var practicalText = item.PracticalNumericScore.HasValue
+                            ? item.PracticalNumericScore.Value.ToString("0.##")
+                            : string.IsNullOrWhiteSpace(item.PracticalGrade) ? "-" : item.PracticalGrade;
+
+                        <tr>
+                            <td>
+                                <div class="results-person-cell">
+                                    <strong>@item.Nrp</strong>
+                                    <span>@item.EmployeeName</span>
+                                    <div class="results-stage-tags">
+                                        @if (item.TheoryPassStatus.HasValue)
+                                        {
+                                            <span class="results-stage-tag theory">Teori</span>
+                                        }
+                                        @if (item.PracticalPassStatus.HasValue)
+                                        {
+                                            <span class="results-stage-tag practical">Praktek</span>
+                                        }
+                                        @if (item.TheoryPassStatus.HasValue && item.PracticalPassStatus.HasValue)
+                                        {
+                                            <span class="results-stage-tag complete">Lengkap</span>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@item.CompanyName</td>
+                            <td>@item.VehicleName</td>
+                            <td>
+                                <div class="results-score-cell">
+                                    @if (item.TheoryPassStatus.HasValue)
+                                    {
+                                        <span class="results-status-pill @(item.TheoryPassStatus.Value ? "pass" : "fail")">
+                                            @(item.TheoryPassStatus.Value ? "Lulus" : "Tidak Lulus")
+                                        </span>
+                                        <strong>@theoryText</strong>
+                                        <small>@item.TheoryFinishedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="results-status-pill neutral">Belum Ada Hasil</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <div class="results-score-cell">
+                                    @if (item.PracticalPassStatus.HasValue)
+                                    {
+                                        <span class="results-status-pill @(item.PracticalPassStatus.Value ? "pass" : "fail")">
+                                            @(item.PracticalPassStatus.Value ? "Lulus" : "Tidak Lulus")
+                                        </span>
+                                        <strong>@practicalText</strong>
+                                        <small>@item.PracticalFinishedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="results-status-pill neutral">Belum Ada Hasil</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <span class="results-status-pill @finalClass">@item.FinalStatus</span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (item.TheorySessionId.HasValue)
+                                    {
+                                        <a asp-action="AnswerReview" asp-route-sessionId="@item.TheorySessionId.Value" class="btn btn-sm btn-outline-primary">
+                                            Teori
+                                        </a>
+                                    }
+                                    @if (item.PracticalSessionId.HasValue)
+                                    {
+                                        <a asp-controller="Practical" asp-action="Evaluate" asp-route-id="@item.PracticalSessionId.Value" class="btn btn-sm btn-outline-secondary">
+                                            Praktek
+                                        </a>
+                                    }
+                                    @if (item.TheorySessionId.HasValue && item.PracticalSessionId.HasValue && item.TheoryPassStatus.HasValue && item.PracticalPassStatus.HasValue)
+                                    {
+                                        <a asp-action="SummaryScore"
+                                           asp-route-theorySessionId="@item.TheorySessionId.Value"
+                                           asp-route-practicalSessionId="@item.PracticalSessionId.Value"
+                                           class="btn btn-sm btn-primary">
+                                            Summary
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

@@ -1,0 +1,67 @@
+@model SimperSecureOnlineTestSystem.ViewModels.NrpInputViewModel
+@{
+    ViewData["Title"] = "Employee Verification";
+}
+
+<div class="landing-shell participant-flow">
+    <div class="row g-4 align-items-stretch">
+        <div class="col-lg-7">
+            <div class="landing-hero h-100 participant-card" data-animate="reveal" data-animate-delay="0">
+                <span class="badge text-bg-light border mb-3">SIMPER Online Assessment</span>
+                <h2 class="fw-bold mb-3">Uji Kompetensi SIMPER Secara Aman & Modern</h2>
+                <p class="text-muted mb-4">
+                    Platform ini digunakan untuk verifikasi peserta, pelaksanaan ujian, dan monitoring keamanan secara real-time.
+                    Peserta tidak perlu login akun, cukup masukkan NRP atau gunakan link + password ujian dari admin.
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="card border-0 shadow-sm h-100 participant-step-card" data-animate="reveal" data-animate-delay="80">
+                            <div class="card-body">
+                                <div class="small text-muted mb-1">Step 1</div>
+                                <div class="fw-semibold">Verifikasi NRP</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="card border-0 shadow-sm h-100 participant-step-card" data-animate="reveal" data-animate-delay="140">
+                            <div class="card-body">
+                                <div class="small text-muted mb-1">Step 2</div>
+                                <div class="fw-semibold">Pilih Ujian SIMPER</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-light border mt-3 mb-0">
+                    <strong>Catatan:</strong> Login hanya untuk <strong>Admin CMS</strong> (pengelola soal, jadwal tes, dan asesmen).
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100 participant-card" data-animate="reveal" data-animate-delay="120">
+                <div class="card-header bg-white fw-semibold py-3">Employee Verification</div>
+                <div class="card-body p-4 d-flex flex-column">
+                    <h5 class="mb-2">Masukkan NRP Peserta</h5>
+                    <p class="text-muted small mb-4">Pastikan NRP sesuai dengan data employee yang terdaftar.</p>
+
+                    <form asp-action="VerifyNrp" method="post" class="mt-auto participant-form" data-loading-form="true">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                        <div class="mb-3">
+                            <label asp-for="Nrp" class="form-label"></label>
+                            <input asp-for="Nrp" class="form-control form-control-lg" autocomplete="off" placeholder="Contoh: EMP00123" />
+                            <span asp-validation-for="Nrp" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg" data-loading-button="Verifikasi & Lanjut">Verifikasi & Lanjut</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,33 @@
+# Build output
+bin/
+obj/
+out/
+publish/
+
+# User/IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local tooling caches
+.dotnet/
+.dotnet-cli-home/
+.nuget/
+.tmp/
+.verify-build/
+
+# Logs
+*.log
+
+# Secrets / local config
+appsettings.Development.json
+appsettings.Local.json
+
+# OS
+Thumbs.db
+.DS_Store
+appsettings.json

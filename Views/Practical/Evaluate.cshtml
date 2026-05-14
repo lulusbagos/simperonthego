@@ -1,0 +1,217 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PracticalEvaluationInputViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Evaluasi Praktek";
+    var gradeOptions = (Model.GradeOptions ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+    var passingValue = Model.ScoringMode == PracticalScoringMode.Numeric
+        ? Model.PassingScore?.ToString("0.##")
+        : Model.PassingGrade;
+    var finalValue = Model.FinalNumericScore.HasValue
+        ? Model.FinalNumericScore.Value.ToString("0.##")
+        : Model.FinalGrade;
+}
+
+<div class="practical-evaluate-shell">
+    <div class="page-head practical-evaluate-head">
+        <div class="schedule-hero-copy">
+            <span class="dash-kicker">Instructor Assessment Workspace</span>
+            <h4 class="page-title">Form Penilaian Praktek</h4>
+            <p class="page-subtitle">Penilaian disusun per item agar instruktur bisa bekerja cepat, jelas, dan tetap rapi saat digunakan di mobile maupun desktop.</p>
+        </div>
+        <div class="toolbar d-flex gap-2 flex-wrap">
+            <span class="metric-chip">Template: @Model.TemplateName</span>
+            <span class="metric-chip">Instruktur: @Model.InstructorName</span>
+            <span class="metric-chip">Mode: @(Model.ScoringMode == PracticalScoringMode.Numeric ? "Angka" : "Huruf")</span>
+        </div>
+    </div>
+
+    <section class="practical-evaluate-hero">
+        <div class="practical-evaluate-hero-main">
+            <div class="practical-hero-kicker">Assessment Session</div>
+            <h1>@Model.EmployeeName</h1>
+            <div class="practical-evaluate-hero-meta">
+                <span><i class="fas fa-id-card me-1"></i>@Model.Nrp</span>
+                <span><i class="fas fa-building me-1"></i>@Model.CompanyName</span>
+                <span><i class="fas fa-truck-ramp-box me-1"></i>@Model.VehicleName</span>
+                <span><i class="fas fa-calendar-day me-1"></i>@Model.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+            </div>
+            <div class="practical-evaluate-pills">
+                <span class="scope-chip admin">KTP: @(string.IsNullOrWhiteSpace(Model.Ktp) ? "-" : Model.Ktp)</span>
+                <span class="scope-chip company">Dept: @(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "-" : Model.DepartmentName)</span>
+                <span class="scope-chip neutral">Pengajuan: @(string.IsNullOrWhiteSpace(Model.SubmissionType) ? "-" : Model.SubmissionType)</span>
+                <span class="scope-chip neutral">No: @(string.IsNullOrWhiteSpace(Model.SubmissionNumber) ? "-" : Model.SubmissionNumber)</span>
+            </div>
+        </div>
+        <div class="practical-evaluate-hero-side">
+            <div class="practical-evaluate-status-card">
+                <span>Ambang Lulus</span>
+                <strong>@passingValue</strong>
+                <small>@(Model.ScoringMode == PracticalScoringMode.Numeric ? "Nilai minimum untuk lulus praktek." : "Grade minimum untuk lulus praktek.")</small>
+            </div>
+            <div class="practical-evaluate-status-card accent">
+                <span>Hasil Terakhir</span>
+                <strong>@(string.IsNullOrWhiteSpace(finalValue) ? "-" : finalValue)</strong>
+                <small>
+                    @if (Model.PassStatus.HasValue)
+                    {
+                        @(Model.PassStatus.Value ? "Status: Lulus" : "Status: Tidak Lulus")
+                    }
+                    else
+                    {
+                        @:Belum ada hasil akhir tersimpan.
+                    }
+                </small>
+            </div>
+        </div>
+    </section>
+
+    <div class="practical-mobile-highlights d-lg-none mb-3">
+        <div class="practical-mobile-highlight">
+            <span>Peserta</span>
+            <strong>@Model.Nrp</strong>
+        </div>
+        <div class="practical-mobile-highlight">
+            <span>Unit</span>
+            <strong>@Model.VehicleName</strong>
+        </div>
+        <div class="practical-mobile-highlight">
+            <span>Target</span>
+            <strong>@passingValue</strong>
+        </div>
+    </div>
+
+    <form asp-action="Evaluate" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="SessionId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger practical-evaluate-alert"></div>
+
+        <div class="practical-evaluate-grid">
+            <aside class="practical-evaluate-sidebar">
+                <section class="practical-evaluate-panel">
+                    <div class="practical-evaluate-panel-title">Snapshot</div>
+                    <div class="practical-eval-summary-grid">
+                        <div>
+                            <span>Peserta</span>
+                            <strong>@Model.Nrp - @Model.EmployeeName</strong>
+                        </div>
+                        <div>
+                            <span>Template</span>
+                            <strong>@Model.TemplateName</strong>
+                        </div>
+                        <div>
+                            <span>Jadwal</span>
+                            <strong>@Model.ScheduledAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</strong>
+                        </div>
+                        <div>
+                            <span>Mode Nilai</span>
+                            <strong>@(Model.ScoringMode == PracticalScoringMode.Numeric ? "Angka" : "Huruf")</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="practical-evaluate-panel">
+                    <div class="practical-evaluate-panel-title">Hasil Saat Ini</div>
+                    <div class="practical-result-preview">
+                        @if (Model.PassStatus.HasValue)
+                        {
+                            <span class="badge @(Model.PassStatus.Value ? "text-bg-success" : "text-bg-danger")">
+                                @(Model.PassStatus.Value ? "Lulus" : "Tidak Lulus")
+                            </span>
+                            @if (Model.FinalNumericScore.HasValue)
+                            {
+                                <span>Skor terakhir: <strong>@Model.FinalNumericScore</strong></span>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(Model.FinalGrade))
+                            {
+                                <span>Grade terakhir: <strong>@Model.FinalGrade</strong></span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Belum ada hasil final tersimpan.</span>
+                        }
+                    </div>
+                </section>
+
+                <section class="practical-evaluate-panel">
+                    <div class="practical-evaluate-panel-title">Catatan Instruktur</div>
+                    <textarea asp-for="InstructorNote" class="form-control practical-note-input practical-evaluate-main-note" rows="8" placeholder="Rangkuman performa peserta, catatan safety, rekomendasi perbaikan, atau arahan tindak lanjut."></textarea>
+                </section>
+            </aside>
+
+            <section class="practical-evaluate-main">
+                <div class="practical-evaluate-main-head">
+                    <div>
+                        <div class="practical-evaluate-panel-title mb-1">Checklist Penilaian</div>
+                        <div class="text-muted small">Isi semua item. Sistem menghitung hasil akhir otomatis berdasarkan bobot dan mode penilaian template.</div>
+                    </div>
+                    <div class="practical-item-weight">Total Item: @Model.Items.Count</div>
+                </div>
+
+                <div class="practical-score-sheet practical-score-sheet-premium">
+                    @for (var i = 0; i < Model.Items.Count; i++)
+                    {
+                        <input asp-for="Items[i].TemplateItemId" type="hidden" />
+                        <input asp-for="Items[i].SectionName" type="hidden" />
+                        <input asp-for="Items[i].ItemLabel" type="hidden" />
+                        <input asp-for="Items[i].Weight" type="hidden" />
+
+                        <article class="practical-score-card">
+                            <div class="practical-score-card-head">
+                                <div class="practical-score-meta">
+                                    <div class="practical-item-section">@Model.Items[i].SectionName</div>
+                                    <div class="practical-item-label">@Model.Items[i].ItemLabel</div>
+                                </div>
+                                <div class="practical-item-weight">Bobot @Model.Items[i].Weight</div>
+                            </div>
+
+                            <div class="practical-score-card-grid">
+                                <div class="practical-score-input">
+                                    <label class="form-label practical-mobile-label">Nilai</label>
+                                    @if (Model.ScoringMode == PracticalScoringMode.Numeric)
+                                    {
+                                        <input asp-for="Items[i].NumericValue" type="number" min="0" max="100" step="0.01" inputmode="decimal" class="form-control form-control-lg practical-touch-input" placeholder="0 - 100" />
+                                    }
+                                    else
+                                    {
+                                        <select asp-for="Items[i].GradeValue" class="form-select form-select-lg practical-touch-input">
+                                            <option value="">Pilih grade</option>
+                                            @foreach (var grade in gradeOptions)
+                                            {
+                                                <option value="@grade">@grade</option>
+                                            }
+                                        </select>
+                                    }
+                                </div>
+
+                                <div class="practical-score-note">
+                                    <label class="form-label practical-mobile-label">Catatan Item</label>
+                                    <textarea asp-for="Items[i].Note" class="form-control practical-touch-input practical-note-input" rows="3" placeholder="Catatan singkat untuk item ini"></textarea>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="card-footer d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center practical-eval-footer mt-3">
+            <div class="practical-result-preview">
+                <span class="metric-chip">Instruktur: @Model.InstructorName</span>
+                <span class="metric-chip">Template: @Model.TemplateName</span>
+            </div>
+            <div class="d-flex gap-2 practical-eval-actions">
+                <a asp-action="MyAssignments" class="btn btn-outline-secondary">Kembali</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-floppy-disk me-1"></i>Simpan Penilaian
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

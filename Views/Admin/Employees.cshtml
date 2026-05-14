@@ -1,0 +1,370 @@
+@model SimperSecureOnlineTestSystem.ViewModels.EmployeeManageViewModel
+@{
+    ViewData["Title"] = "Direktori Peserta";
+    var today = DateTime.Today;
+    var activeApplicantCount = Model.EligibleApplicants.Count(x =>
+    {
+        var endDate = ParseDateValue(x.BerakhirKerja);
+        return !endDate.HasValue || endDate.Value.Date >= today;
+    });
+    var expiringSoonCount = Model.EligibleApplicants.Count(x =>
+    {
+        var endDate = ParseDateValue(x.BerakhirKerja);
+        return endDate.HasValue && endDate.Value.Date >= today && endDate.Value.Date <= today.AddDays(30);
+    });
+    var startRow = Model.TotalApplicants == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endRow = Model.TotalApplicants == 0 ? 0 : Math.Min(Model.Page * Model.PageSize, Model.TotalApplicants);
+    var applicantCompanyCount = Model.EligibleApplicants
+        .Select(x => string.IsNullOrWhiteSpace(x.Perusahaan) ? $"CID-{x.CreatedCompanyId}" : x.Perusahaan!.Trim())
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    string DisplayValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    DateTime? ParseDateValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(value.Trim(), out var parsed)
+            ? parsed
+            : null;
+    }
+
+    string DisplayDateValue(string? value)
+    {
+        var parsed = ParseDateValue(value);
+        if (parsed.HasValue)
+        {
+            return parsed.Value.ToString("dd MMM yyyy");
+        }
+
+        return DisplayValue(value);
+    }
+
+    (string CssClass, string Label) GetEmploymentState(string? rawEndDate)
+    {
+        var endDate = ParseDateValue(rawEndDate);
+        if (!endDate.HasValue)
+        {
+            return ("active", "Aktif");
+        }
+
+        if (endDate.Value.Date < today)
+        {
+            return ("expired", "Masa kerja berakhir");
+        }
+
+        if (endDate.Value.Date <= today.AddDays(30))
+        {
+            return ("warning", "Berakhir <= 30 hari");
+        }
+
+        return ("active", "Aktif");
+    }
+
+    string GetSubmissionTone(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return "neutral";
+        }
+
+        var normalized = status.Trim().ToLowerInvariant();
+        if (normalized.Contains("reject") || normalized.Contains("tolak"))
+        {
+            return "danger";
+        }
+
+        if (normalized.Contains("approve") || normalized.Contains("setuju") || normalized.Contains("selesai"))
+        {
+            return "success";
+        }
+
+        if (normalized.Contains("proses") || normalized.Contains("review") || normalized.Contains("verifikasi"))
+        {
+            return "warning";
+        }
+
+        return "info";
+    }
+}
+
+<div class="page-head">
+    <div>
+        <h4 class="page-title">Direktori Peserta Tes</h4>
+        <p class="page-subtitle">Daftar kandidat pengajuan SIMPER untuk kebutuhan tes teori dan praktek, ditampilkan dalam tabel yang lebih cepat dibaca operator.</p>
+    </div>
+    <div class="toolbar">
+        <span class="metric-chip">Eligible: @Model.EligibleApplicants.Count</span>
+        <span class="metric-chip">Aktif Kerja: @activeApplicantCount</span>
+        <span class="metric-chip">Segera Berakhir: @expiringSoonCount</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm employee-directory-card employee-directory-hero">
+            <div class="card-body p-4">
+                <div class="employee-directory-head">
+                    <div>
+                        <div class="section-kicker">Applicant Directory</div>
+                        <h5 class="mb-1">Tabel Kandidat SIMPER</h5>
+                        <p class="text-muted mb-0">Pusat kontrol peserta teori dan praktek dengan pencarian cepat, indikator status kerja, dan detail kandidat dalam satu layar operasional.</p>
+                    </div>
+                    <div class="employee-directory-summary">
+                        <span class="scope-chip neutral">Company Terlihat: @applicantCompanyCount</span>
+                        <span class="scope-chip neutral">Scope: @(Model.IsAdministrator ? "Administrator · Semua created_company_id" : $"Company Admin · created_company_id company login")</span>
+                    </div>
+                </div>
+
+                <form method="get" asp-action="Employees" class="employee-directory-search mt-4">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
+                        <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Cari nama, NIK, KTP, nomor pengajuan, perusahaan, atau departemen" />
+                        <button type="submit" class="btn btn-primary px-4">Filter</button>
+                    </div>
+                </form>
+
+                <div class="employee-metric-grid mt-4">
+                    <div class="employee-metric-panel">
+                        <span class="employee-metric-label">Total Kandidat</span>
+                        <strong>@Model.EligibleApplicants.Count</strong>
+                        <small>Data view pengajuan aktif sesuai scope login</small>
+                    </div>
+                    <div class="employee-metric-panel">
+                        <span class="employee-metric-label">Aktif Kerja</span>
+                        <strong>@activeApplicantCount</strong>
+                        <small>Masih dalam masa kerja atau belum ada tanggal akhir</small>
+                    </div>
+                    <div class="employee-metric-panel">
+                        <span class="employee-metric-label">Perlu Perhatian</span>
+                        <strong>@expiringSoonCount</strong>
+                        <small>Masa kerja berakhir dalam 30 hari ke depan</small>
+                    </div>
+                </div>
+
+                <div class="employee-summary-ribbon mt-4">
+                    <div class="employee-summary-ribbon-item">
+                        <span>Mode</span>
+                        <strong>Operasional Harian</strong>
+                    </div>
+                    <div class="employee-summary-ribbon-item">
+                        <span>Fokus</span>
+                        <strong>Teori & Praktek</strong>
+                    </div>
+                    <div class="employee-summary-ribbon-item">
+                        <span>Detail</span>
+                        <strong>Via modal per peserta</strong>
+                    </div>
+                    <div class="employee-summary-ribbon-item">
+                        <span>Filter Scope</span>
+                        <strong>@(Model.IsAdministrator ? "Semua company" : "Hanya created_company_id company login")</strong>
+                    </div>
+                    <div class="employee-summary-ribbon-item">
+                        <span>Page View</span>
+                        <strong>@startRow - @endRow dari @Model.TotalApplicants</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4 employee-table-shell">
+            <div class="card-header bg-white fw-semibold employee-table-head">
+                <div>
+                    <div class="section-kicker mb-1">Applicant Table</div>
+                    <div>Daftar Peserta Pengajuan SIMPER</div>
+                </div>
+                <span class="employee-table-count">@Model.EligibleApplicants.Count data</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table premium-table align-middle mb-0 employee-premium-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 160px;">Nama</th>
+                            <th style="min-width: 120px;">NIK</th>
+                            <th style="min-width: 140px;">Nomor</th>
+                            <th style="min-width: 140px;">Pengajuan</th>
+                            <th style="min-width: 160px;">Perusahaan</th>
+                            <th style="min-width: 150px;">Departemen</th>
+                            <th style="min-width: 130px;">Berakhir Kerja</th>
+                            <th style="min-width: 120px;">Status</th>
+                            <th style="min-width: 90px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.EligibleApplicants.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">Belum ada kandidat pada scope ini.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var applicant in Model.EligibleApplicants)
+                            {
+                                var employmentState = GetEmploymentState(applicant.BerakhirKerja);
+                                var submissionTone = GetSubmissionTone(applicant.Pengajuan);
+                                <tr>
+                                    <td>
+                                        <div class="employee-name-cell">
+                                            <strong>@DisplayValue(applicant.Nama)</strong>
+                                            <span>KTP: @DisplayValue(applicant.Ktp)</span>
+                                        </div>
+                                    </td>
+                                    <td>@DisplayValue(applicant.Nik)</td>
+                                    <td><span class="employee-code-chip">@DisplayValue(applicant.Nomor)</span></td>
+                                    <td><span class="directory-pill @submissionTone">@DisplayValue(applicant.Pengajuan)</span></td>
+                                    <td>@DisplayValue(applicant.Perusahaan)</td>
+                                    <td>@DisplayValue(applicant.Departemen)</td>
+                                    <td>@DisplayDateValue(applicant.BerakhirKerja)</td>
+                                    <td><span class="directory-pill @employmentState.CssClass">@employmentState.Label</span></td>
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary btn-employee-detail"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#employeeDetailModal"
+                                                data-name="@DisplayValue(applicant.Nama)"
+                                                data-date="@DisplayDateValue(applicant.Tanggal)"
+                                                data-number="@DisplayValue(applicant.Nomor)"
+                                                data-ktp="@DisplayValue(applicant.Ktp)"
+                                                data-submission="@DisplayValue(applicant.Pengajuan)"
+                                                data-nik="@DisplayValue(applicant.Nik)"
+                                                data-company="@DisplayValue(applicant.Perusahaan)"
+                                                data-department="@DisplayValue(applicant.Departemen)"
+                                                data-end-date="@DisplayDateValue(applicant.BerakhirKerja)"
+                                                data-scope="CID @((applicant.CreatedCompanyId?.ToString() ?? "-")) / DID @((applicant.CreatedDepartmentId?.ToString() ?? "-"))">
+                                            <i class="fas fa-eye me-1"></i>Detail
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.TotalPages > 1)
+            {
+                <div class="employee-pagination-wrap">
+                    <div class="employee-pagination-meta">
+                        Menampilkan <strong>@startRow - @endRow</strong> dari <strong>@Model.TotalApplicants</strong> peserta
+                    </div>
+                    <div class="employee-pagination">
+                        <a asp-action="Employees"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-page="@(Model.Page > 1 ? Model.Page - 1 : 1)"
+                           class="btn btn-sm btn-outline-secondary @(Model.Page <= 1 ? "disabled" : string.Empty)">
+                            <i class="fas fa-chevron-left me-1"></i>Prev
+                        </a>
+                        <span class="employee-page-indicator">Halaman @Model.Page / @Model.TotalPages</span>
+                        <a asp-action="Employees"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-page="@(Model.Page < Model.TotalPages ? Model.Page + 1 : Model.TotalPages)"
+                           class="btn btn-sm btn-outline-secondary @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
+                            Next<i class="fas fa-chevron-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow employee-detail-modal">
+            <div class="modal-header employee-detail-modal-head">
+                <div>
+                    <div class="section-kicker mb-1">Detail Peserta</div>
+                    <h5 class="modal-title mb-0" id="employeeDetailName">-</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="employee-detail-hero">
+                    <div class="employee-detail-hero-icon">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div>
+                        <div class="employee-detail-hero-title">Profil Pengajuan SIMPER</div>
+                        <div class="employee-detail-hero-subtitle">Ringkasan kandidat untuk verifikasi penjadwalan teori dan praktek.</div>
+                    </div>
+                </div>
+                <div class="employee-detail-grid">
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Tanggal Pengajuan</span>
+                        <strong id="employeeDetailDate">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Nomor Pengajuan</span>
+                        <strong id="employeeDetailNumber">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">KTP</span>
+                        <strong id="employeeDetailKtp">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Status Pengajuan</span>
+                        <strong id="employeeDetailSubmission">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">NIK</span>
+                        <strong id="employeeDetailNik">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Perusahaan</span>
+                        <strong id="employeeDetailCompany">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Departemen</span>
+                        <strong id="employeeDetailDepartment">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Berakhir Kerja</span>
+                        <strong id="employeeDetailEndDate">-</strong>
+                    </div>
+                    <div class="employee-detail-item">
+                        <span class="employee-detail-label">Scope ID</span>
+                        <strong id="employeeDetailScope">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const detailModal = document.getElementById("employeeDetailModal");
+            if (!detailModal) return;
+
+            detailModal.addEventListener("show.bs.modal", (event) => {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                const setText = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value || "-";
+                    }
+                };
+
+                setText("employeeDetailName", button.getAttribute("data-name"));
+                setText("employeeDetailDate", button.getAttribute("data-date"));
+                setText("employeeDetailNumber", button.getAttribute("data-number"));
+                setText("employeeDetailKtp", button.getAttribute("data-ktp"));
+                setText("employeeDetailSubmission", button.getAttribute("data-submission"));
+                setText("employeeDetailNik", button.getAttribute("data-nik"));
+                setText("employeeDetailCompany", button.getAttribute("data-company"));
+                setText("employeeDetailDepartment", button.getAttribute("data-department"));
+                setText("employeeDetailEndDate", button.getAttribute("data-end-date"));
+                setText("employeeDetailScope", button.getAttribute("data-scope"));
+            });
+        })();
+    </script>
+}

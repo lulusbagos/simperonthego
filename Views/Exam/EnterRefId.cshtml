@@ -1,0 +1,105 @@
+@model SimperSecureOnlineTestSystem.ViewModels.RefIdInputViewModel
+@{
+    ViewData["Title"] = "Masuk Ujian";
+}
+
+<div class="landing-shell participant-flow participant-entry-shell">
+    <div class="row g-4 align-items-stretch">
+        <div class="col-lg-7">
+            <div class="landing-hero h-100 participant-card hero-premium participant-entry-hero" data-animate="reveal" data-animate-delay="0">
+                <div class="hero-logo-row mb-3">
+                    <span class="hero-logo-badge">
+                        <img src="~/logo/logo.png" alt="PT INDEXIM COALINDO" />
+                    </span>
+                    <div>
+                        <div class="hero-kicker">Official Participant Gateway</div>
+                        <div class="hero-company">Simper On The Go</div>
+                    </div>
+                </div>
+
+                <h2 class="fw-bold mb-3">Akses Sesi Ujian dengan Ref ID</h2>
+                <p class="text-muted mb-4">
+                    Ref ID diberikan oleh admin setelah jadwal peserta diaktifkan.
+                    Setelah Ref ID terverifikasi, peserta melanjutkan ke verifikasi kamera lalu masuk ke sesi teori.
+                    Penilaian praktek dikelola secara terpisah oleh instruktur.
+                </p>
+                <div class="tutorial-highlight mb-4 participant-entry-highlight">
+                    <strong>Alur cepat dan aman:</strong> input Ref ID valid akan langsung diarahkan ke sesi aktif tanpa langkah tambahan yang membingungkan.
+                </div>
+
+                <div class="portal-trust-grid mb-4">
+                    <div class="portal-trust-card">
+                        <strong>Verified Session Token</strong>
+                        <span>Setiap sesi memiliki Ref ID unik untuk mencegah akses silang peserta.</span>
+                    </div>
+                    <div class="portal-trust-card">
+                        <strong>Camera Compliance</strong>
+                        <span>Pemeriksaan kamera dilakukan sebelum soal ditampilkan ke peserta.</span>
+                    </div>
+                    <div class="portal-trust-card">
+                        <strong>Real-Time Session Tracking</strong>
+                        <span>Status ujian dan progres jawaban dapat dipantau oleh tim assessor.</span>
+                    </div>
+                    <div class="portal-trust-card">
+                        <strong>Theory + Practical Workflow</strong>
+                        <span>Teori dikerjakan peserta, praktek dinilai instruktur berdasarkan template unit.</span>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm tutorial-card mb-3" data-animate="reveal" data-animate-delay="80">
+                    <div class="card-body">
+                        <h6 class="fw-semibold mb-3">Panduan Singkat Peserta</h6>
+                        <ol class="small text-muted tutorial-list mb-0">
+                            <li>Masukkan Ref ID dari admin sesuai format.</li>
+                            <li>Klik <strong>Izinkan Kamera di Sini</strong> lalu pastikan pratinjau kamera muncul.</li>
+                            <li>Pastikan status kamera berubah menjadi <strong>Aktif</strong>.</li>
+                            <li>Klik <strong>Lanjut ke Sesi Ujian</strong> untuk mulai mengerjakan soal.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="camera-permission-card" data-animate="reveal" data-animate-delay="120">
+                    <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-2">
+                        <strong>Verifikasi Kamera Peserta</strong>
+                        <span id="cameraPermissionStatus" class="badge text-bg-secondary">Belum Diperiksa</span>
+                    </div>
+                    <p class="small text-muted mb-3">Aktifkan izin kamera terlebih dahulu agar sesi ujian dapat dimulai tanpa kendala verifikasi.</p>
+                    <button type="button" class="btn btn-outline-primary" id="cameraPermissionBtn">Izinkan Kamera di Sini</button>
+                    <video id="cameraPreviewMini" class="camera-preview-mini mt-3" autoplay muted playsinline hidden></video>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100 participant-card participant-entry-form-card" data-animate="reveal" data-animate-delay="140">
+                <div class="card-header bg-white fw-semibold py-3">Participant Session Access</div>
+                <div class="card-body p-4 d-flex flex-column">
+                    <h5 class="mb-2">Masukkan Ref ID</h5>
+                    <p class="text-muted small mb-4">
+                        Gunakan kombinasi huruf kapital dan angka tanpa spasi.
+                        Contoh format: <strong>A8DK39PQ2L</strong>
+                    </p>
+                    @if (TempData["RefIdError"] is string refIdError)
+                    {
+                        <div class="alert alert-warning py-2 mb-3 participant-entry-alert">@refIdError</div>
+                    }
+
+                    <form asp-action="GoToAccessByRefId" method="post" class="mt-auto participant-form" data-loading-form="true">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                        <div class="mb-3">
+                            <label asp-for="RefId" class="form-label"></label>
+                            <input asp-for="RefId" class="form-control form-control-lg text-uppercase participant-entry-input" autocomplete="off" placeholder="Contoh: A8DK39PQ2L" />
+                            <span asp-validation-for="RefId" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg" data-loading-button="Lanjut ke Sesi Ujian">Lanjut ke Sesi Ujian</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

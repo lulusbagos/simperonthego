@@ -1,0 +1,372 @@
+@model SimperSecureOnlineTestSystem.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    var activeCount = Model.ActiveExams.Count;
+    var cameraOffCount = Model.ActiveExams.Count(x => !x.CameraActive);
+    var suspiciousCount = Model.ActiveExams.Count(x => x.TabSwitchCount > 0);
+    var avgScore = activeCount == 0 ? 0 : Math.Round(Model.ActiveExams.Average(x => x.Score), 2);
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Executive Monitoring Deck</span>
+        <h4 class="page-title">Dashboard Operasional SIMPER</h4>
+        <p class="page-subtitle">Pantau ujian aktif, arahkan operasional teori dan praktek, lalu masuk cepat ke modul yang paling sering dipakai.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Active Exams</span>
+                <strong id="statActive">@activeCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Camera Off</span>
+                <strong id="statCameraOff">@cameraOffCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Suspicious</span>
+                <strong id="statSuspicious">@suspiciousCount</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <div class="schedule-date-form">
+            <label class="schedule-toolbar-label">Control</label>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="metric-chip">@(Model.IsAdministrator ? "Administrator" : "Company")</span>
+                <span class="metric-chip">Avg Score: <span id="statAvgScore">@avgScore</span></span>
+                <button type="button" class="btn btn-outline-primary" id="btnExportPng"><i class="fas fa-image me-1"></i>PNG</button>
+                <button type="button" class="btn btn-outline-secondary" id="btnExportPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="premium-shell p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="mb-1">Quick Workflow</h6>
+            <small class="text-muted">Susun shortcut berdasarkan ritme kerja harian: peserta, jadwal, hasil, dan instruktur.</small>
+        </div>
+        <span class="small text-muted">Masuk cepat tanpa berpindah menu panjang</span>
+    </div>
+
+    <div class="dashboard-shortcut-grid">
+        <a asp-action="Employees" class="dashboard-shortcut-card primary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-users"></i></span>
+            <strong>Direktori Peserta</strong>
+            <small>Data kandidat berdasarkan company scope</small>
+        </a>
+        <a asp-action="Schedules" class="dashboard-shortcut-card primary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-calendar-days"></i></span>
+            <strong>Jadwal Teori</strong>
+            <small>Slot teori per unit dan jam</small>
+        </a>
+        <a asp-action="PracticalSessions" class="dashboard-shortcut-card primary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-share-nodes"></i></span>
+            <strong>Jadwal Praktek</strong>
+            <small>Distribusi sesi dan instruktur</small>
+        </a>
+        <a asp-action="Results" class="dashboard-shortcut-card primary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-chart-column"></i></span>
+            <strong>Status Akhir</strong>
+            <small>Teori dan praktek dalam satu matriks</small>
+        </a>
+        <a asp-action="Instructors" class="dashboard-shortcut-card secondary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-chalkboard-user"></i></span>
+            <strong>Master Instruktur</strong>
+            <small>Direktori akun dan beban assignment</small>
+        </a>
+        <a asp-action="PracticalTemplates" class="dashboard-shortcut-card secondary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-clipboard-list"></i></span>
+            <strong>Template Praktek</strong>
+            <small>Form penilaian per unit</small>
+        </a>
+        <a asp-controller="Practical" asp-action="MyAssignments" class="dashboard-shortcut-card secondary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-user-check"></i></span>
+            <strong>Penilaian Instruktur</strong>
+            <small>Masuk ke daftar assignment aktif</small>
+        </a>
+        <a asp-action="Vehicles" class="dashboard-shortcut-card tertiary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-truck"></i></span>
+            <strong>Unit</strong>
+            <small>Master vehicle dan SIMPER</small>
+        </a>
+        <a asp-action="Questions" class="dashboard-shortcut-card tertiary">
+            <span class="dashboard-shortcut-icon"><i class="fas fa-list-check"></i></span>
+            <strong>Soal Teori</strong>
+            <small>Bank soal per company dan unit</small>
+        </a>
+        @if (User.IsInRole("Administrator"))
+        {
+            <a asp-action="Users" class="dashboard-shortcut-card tertiary">
+                <span class="dashboard-shortcut-icon"><i class="fas fa-user-shield"></i></span>
+                <strong>Manajemen User</strong>
+                <small>Administrator, company admin, instruktur</small>
+            </a>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3">
+        <div class="dash-kpi-card kpi-active">
+            <div class="dash-kpi-label">Active Exams</div>
+            <div class="dash-kpi-value">@activeCount</div>
+            <div class="dash-kpi-meta">Sesi ujian sedang berjalan</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dash-kpi-card kpi-danger">
+            <div class="dash-kpi-label">Camera Off</div>
+            <div class="dash-kpi-value">@cameraOffCount</div>
+            <div class="dash-kpi-meta">Perlu tindak lanjut proctor</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dash-kpi-card kpi-warning">
+            <div class="dash-kpi-label">Suspicious Events</div>
+            <div class="dash-kpi-value">@suspiciousCount</div>
+            <div class="dash-kpi-meta">Tab switch dan aktivitas mencurigakan</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dash-kpi-card kpi-score">
+            <div class="dash-kpi-label">Average Score</div>
+            <div class="dash-kpi-value">@avgScore</div>
+            <div class="dash-kpi-meta">Rata-rata skor sesi aktif</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-7">
+        <div class="premium-shell p-3 h-100">
+            <div class="dashboard-section-head">
+                <div>
+                    <h6 class="mb-1">Live Monitoring Trend</h6>
+                    <small class="text-muted">20 titik refresh terakhir untuk active exam, camera off, dan suspicious event.</small>
+                </div>
+                <span class="small text-muted">Realtime trend</span>
+            </div>
+            <div style="height:280px;">
+                <canvas id="liveTrendChart" height="90"></canvas>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.IsAdministrator)
+    {
+        <div class="col-xl-5">
+            <div class="premium-shell p-3 h-100">
+                <div class="dashboard-section-head">
+                    <div>
+                        <h6 class="mb-1">Company Performance Snapshot</h6>
+                        <small class="text-muted">Ringkasan real-time per company untuk membantu prioritas monitoring.</small>
+                    </div>
+                    <span class="small text-muted">Global view</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table premium-table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Active</th>
+                                <th>Cam Off</th>
+                                <th>Alert</th>
+                                <th>Avg</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.CompanySummaries.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Belum ada data company.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var company in Model.CompanySummaries)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@company.CompanyName</td>
+                                        <td>@company.ActiveExamCount</td>
+                                        <td><span class="badge bg-danger">@company.CameraOffCount</span></td>
+                                        <td><span class="badge bg-warning text-dark">@company.SuspiciousCount</span></td>
+                                        <td>@company.AverageScore</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="premium-shell p-3 mb-3">
+    <div class="dashboard-section-head">
+        <div>
+            <h6 class="mb-1">Cheat Detection Feed</h6>
+            <small class="text-muted">Notifikasi live saat peserta keluar tab atau memunculkan perilaku yang perlu ditinjau.</small>
+        </div>
+        <span class="small text-muted">Live alert</span>
+    </div>
+    <div class="dashboard-alert-feed" id="suspiciousEventFeed">
+        <div class="text-muted small">Belum ada aktivitas mencurigakan terbaru.</div>
+    </div>
+</div>
+
+<div class="premium-shell p-3 mb-3">
+    <div class="dashboard-section-head">
+        <div>
+            <h6 class="mb-1">Camera Active Realtime</h6>
+            <small class="text-muted">Status kamera per sesi aktif dengan filter cepat untuk pencarian operator.</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger" id="cameraOffAlertBadge">OFF: @cameraOffCount</span>
+            <small class="text-muted">Last refresh: <span id="cameraLastRefresh">-</span></small>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Camera filter">
+            <button type="button" class="btn btn-outline-secondary active" data-camera-filter="all">All</button>
+            <button type="button" class="btn btn-outline-success" data-camera-filter="on">On</button>
+            <button type="button" class="btn btn-outline-danger" data-camera-filter="off">Off</button>
+        </div>
+        <input type="text" class="form-control form-control-sm camera-search-input" id="cameraSearchInput" placeholder="Cari NRP atau nama peserta..." />
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="camera-mini-box success">
+                <div class="camera-mini-label">Camera ON</div>
+                <div class="camera-mini-value" id="cameraOnCount">@(activeCount - cameraOffCount)</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="camera-mini-box danger">
+                <div class="camera-mini-label">Camera OFF</div>
+                <div class="camera-mini-value" id="cameraOffCount">@cameraOffCount</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="camera-mini-box info">
+                <div class="camera-mini-label">Total Session</div>
+                <div class="camera-mini-value" id="cameraTotalCount">@activeCount</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table premium-table table-sm align-middle mb-0" id="cameraRealtimeTable">
+            <thead>
+                <tr>
+                    <th>Session</th>
+                    <th>Company</th>
+                    <th>NRP</th>
+                    <th>Nama</th>
+                    <th>Vehicle</th>
+                    <th>Camera</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ActiveExams)
+                {
+                    <tr>
+                        <td>@item.SessionId</td>
+                        <td>@item.CompanyName</td>
+                        <td>@item.Nrp</td>
+                        <td>@item.EmployeeName</td>
+                        <td>@item.VehicleName</td>
+                        <td>
+                            <span class="badge @(item.CameraActive ? "bg-success" : "bg-danger")">
+                                @(item.CameraActive ? "On" : "Off")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="premium-shell p-3 mb-3">
+    <div class="dashboard-section-head">
+        <div>
+            <h6 class="mb-1">Live Camera Preview</h6>
+            <small class="text-muted">Snapshot peserta aktif untuk membantu monitoring visual cepat.</small>
+        </div>
+        <span class="small text-muted">Refresh sekitar 3 detik</span>
+    </div>
+    <div class="camera-live-grid" id="cameraLiveGrid">
+        @foreach (var item in Model.ActiveExams)
+        {
+            <div class="camera-live-card" data-token="@item.Token">
+                <div class="camera-live-head">
+                    <strong>@item.Nrp</strong>
+                    <span class="badge @(item.CameraActive ? "bg-success" : "bg-danger")">@(item.CameraActive ? "On" : "Off")</span>
+                </div>
+                <div class="camera-live-name">@item.EmployeeName</div>
+                <div class="camera-live-frame empty">Menunggu frame kamera...</div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="premium-shell p-3">
+    <div class="dashboard-section-head">
+        <div>
+            <h6 class="mb-1">Active Exams Detail</h6>
+            <small class="text-muted">Tabel detail untuk operator yang perlu melihat progress, camera state, dan skor secara cepat.</small>
+        </div>
+        <span class="small text-muted">Live table</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped premium-table" id="activeExamTable">
+            <thead>
+                <tr>
+                    <th>Session</th>
+                    <th>Company</th>
+                    <th>NRP</th>
+                    <th>Employee</th>
+                    <th>Vehicle</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Camera</th>
+                    <th>Tab Switch</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ActiveExams)
+                {
+                    <tr>
+                        <td>@item.SessionId</td>
+                        <td>@item.CompanyName</td>
+                        <td>@item.Nrp</td>
+                        <td>@item.EmployeeName</td>
+                        <td>@item.VehicleName</td>
+                        <td>@item.Status</td>
+                        <td>@item.AnsweredCount / @item.TotalQuestions</td>
+                        <td>
+                            <span class="badge @(item.CameraActive ? "bg-success" : "bg-danger")">
+                                @(item.CameraActive ? "On" : "Off")
+                            </span>
+                        </td>
+                        <td>@item.TabSwitchCount</td>
+                        <td>@item.Score</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script src="~/js/admin-dashboard.js" asp-append-version="true"></script>
+}

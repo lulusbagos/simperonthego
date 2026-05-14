@@ -1,0 +1,366 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PracticalSessionManageViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Jadwal Praktek";
+    var selectedDate = Model.Date.Date;
+    var slots = Enumerable.Range(8, 10).Select(h => new TimeSpan(h, 0, 0)).ToList();
+    var pendingCount = Model.ExistingSessions.Count(x => x.Status != PracticalAssessmentStatus.Submitted);
+    var completedCount = Model.ExistingSessions.Count(x => x.Status == PracticalAssessmentStatus.Submitted);
+    var companySummaries = Model.ExistingEmployees
+        .Select(x => new { x.CompanyId, CompanyName = Model.ExistingCompanies.FirstOrDefault(c => c.Id == x.CompanyId)?.CompanyName ?? $"Company {x.CompanyId}" })
+        .Concat(Model.ExistingVehicles.Select(x => new { x.CompanyId, CompanyName = Model.ExistingCompanies.FirstOrDefault(c => c.Id == x.CompanyId)?.CompanyName ?? $"Company {x.CompanyId}" }))
+        .GroupBy(x => new { x.CompanyId, x.CompanyName })
+        .Select(group => new
+        {
+            group.Key.CompanyId,
+            group.Key.CompanyName,
+            EmployeeCount = Model.ExistingEmployees.Count(x => x.CompanyId == group.Key.CompanyId),
+            VehicleCount = Model.ExistingVehicles.Count(x => x.CompanyId == group.Key.CompanyId),
+            SessionCount = Model.ExistingSessions.Count(x => x.CompanyId == group.Key.CompanyId)
+        })
+        .OrderBy(x => x.CompanyName)
+        .ToList();
+    var vehicleGroups = Model.ExistingVehicles
+        .GroupBy(x => new { x.CompanyId, CompanyName = Model.ExistingCompanies.FirstOrDefault(c => c.Id == x.CompanyId)?.CompanyName ?? $"Company {x.CompanyId}" })
+        .OrderBy(x => x.Key.CompanyName)
+        .ToList();
+    var theoryDoneKeys = Model.TheoryCompletedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Practical Scheduler</span>
+        <h4 class="page-title">Distribusi Form Praktek</h4>
+        <p class="page-subtitle">Board praktek dipakai untuk mengatur unit, instruktur, dan sesi penilaian dengan alur operasional yang tetap cepat.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Sesi Pending</span>
+                <strong>@pendingCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Sesi Selesai</span>
+                <strong>@completedCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Instruktur</span>
+                <strong>@Model.ExistingInstructors.Count</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <form method="get" class="schedule-date-form">
+            <label class="schedule-toolbar-label">Tanggal Operasional</label>
+            <div class="schedule-date-form-row">
+                <input type="date" class="form-control" name="date" value="@selectedDate.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-primary">Load</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (TempData["PracticalSuccess"] is string practicalSuccess)
+{
+    <div class="alert alert-success">@practicalSuccess</div>
+}
+
+@if (TempData["PracticalError"] is string practicalError)
+{
+    <div class="alert alert-danger">@practicalError</div>
+}
+
+<div class="schedule-scope-banner mb-3">
+    @if (Model.IsAdministrator)
+    {
+        <span class="scope-chip admin">Mode Administrator: seluruh company terlihat.</span>
+    }
+    else
+    {
+        <span class="scope-chip company">Mode Company Admin: hanya data company Anda yang terlihat.</span>
+    }
+    <span class="scope-chip neutral">Tanggal aktif: @selectedDate.ToString("dd/MM/yyyy")</span>
+    <span class="scope-chip neutral">Klik kanan chip: salin link penilaian</span>
+    <span class="scope-chip neutral">Titik hijau: teori sudah selesai</span>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-4">
+        <div class="premium-shell p-3 schedule-block h-100 practical-panel">
+            <div class="schedule-form-head">
+                <div>
+                    <div class="schedule-form-title">Jadwalkan Praktek</div>
+                    <div class="schedule-form-caption">Tentukan peserta, unit, template, dan instruktur untuk membentuk sesi penilaian praktek.</div>
+                </div>
+                <span class="schedule-form-badge accent-warm">Practical Form</span>
+            </div>
+            <div class="practical-panel-body">
+                <form asp-action="PracticalSessions" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Date" type="hidden" value="@selectedDate.ToString("yyyy-MM-dd")" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="EmployeeId" class="form-label">Peserta</label>
+                            <select asp-for="EmployeeId" class="form-select" id="practicalEmployeeSelect">
+                                <option value="">Pilih peserta</option>
+                                @foreach (var company in companySummaries)
+                                {
+                                    <optgroup label="@company.CompanyName">
+                                        @foreach (var employee in Model.ExistingEmployees.Where(x => x.CompanyId == company.CompanyId).OrderBy(x => x.Nrp))
+                                        {
+                                            <option value="@employee.Id"
+                                                    data-company-id="@employee.CompanyId"
+                                                    data-company-name="@company.CompanyName"
+                                                    data-nrp="@employee.Nrp"
+                                                    data-name="@employee.EmployeeName">
+                                                @employee.Nrp - @employee.EmployeeName
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="VehicleId" class="form-label">Unit / Vehicle</label>
+                            <select asp-for="VehicleId" class="form-select" id="practicalVehicleSelect">
+                                <option value="">Pilih unit</option>
+                                @foreach (var company in companySummaries)
+                                {
+                                    <optgroup label="@company.CompanyName">
+                                        @foreach (var vehicle in Model.ExistingVehicles.Where(x => x.CompanyId == company.CompanyId).OrderBy(x => x.VehicleName))
+                                        {
+                                            <option value="@vehicle.Id"
+                                                    data-company-id="@vehicle.CompanyId"
+                                                    data-vehicle-name="@vehicle.VehicleName">
+                                                @vehicle.VehicleName (@vehicle.SimperType)
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="TemplateId" class="form-label">Template Aktif</label>
+                            <select asp-for="TemplateId" class="form-select" id="practicalTemplateSelect">
+                                <option value="">Pilih template</option>
+                                @foreach (var template in Model.ExistingTemplates.Where(x => x.IsActive).OrderBy(x => x.VehicleName))
+                                {
+                                    <option value="@template.Id"
+                                            data-company-id="@template.CompanyId"
+                                            data-vehicle-id="@template.VehicleId">
+                                        @template.VehicleName - @template.TemplateName
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="InstructorUserId" class="form-label">Instruktur</label>
+                            <select asp-for="InstructorUserId" class="form-select" id="practicalInstructorSelect">
+                                <option value="">Pilih instruktur</option>
+                                @foreach (var instructor in Model.ExistingInstructors.OrderBy(x => x.FullName))
+                                {
+                                    <option value="@instructor.Id" data-company-id="@instructor.CompanyId">@instructor.FullName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="ScheduledAt" class="form-label">Tanggal & Jam</label>
+                            <input asp-for="ScheduledAt" type="datetime-local" class="form-control" value="@Model.ScheduledAt.ToString("yyyy-MM-ddTHH:mm")" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Status Link</label>
+                            <div class="practical-inline-note h-100 d-flex align-items-center">Instruktur tetap login, link hanya membuka form sesi yang ditugaskan.</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="practical-form-assist" id="practicalFormAssist">
+                                Pilih peserta terlebih dahulu agar pilihan unit, template, dan instruktur otomatis difokuskan ke company yang benar.
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3 w-100">
+                        <i class="fas fa-paper-plane me-1"></i>Simpan Jadwal Praktek
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="premium-shell p-3 schedule-block schedule-board-shell practical-board-shell">
+            <div class="schedule-board-topbar">
+                <div class="schedule-legend">
+                    <span class="legend-item board-type-practical">Board Praktek</span>
+                    <span class="legend-item scheduled-scheduled">Scheduled</span>
+                    <span class="legend-item scheduled-in_progress">In Progress</span>
+                    <span class="legend-item scheduled-completed">Submitted</span>
+                    <span class="legend-item practical-theory-dot">Teori Selesai</span>
+                </div>
+                <div class="practical-board-tools">
+                    <input type="search" id="practicalBoardSearch" class="form-control" placeholder="Cari NIK, nama, instruktur, unit, atau company..." />
+                    <small class="text-muted">Klik kanan kartu untuk salin link. Drag kartu ke slot lain untuk reschedule.</small>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="max-height:70vh;overflow:auto;">
+                <table class="table premium-table table-bordered align-middle schedule-table" id="practicalScheduleBoard">
+                    <thead>
+                        <tr>
+                            <th style="min-width:220px;">Vehicle / Unit</th>
+                            @foreach (var slot in slots)
+                            {
+                                <th class="text-center" style="min-width:140px;">@slot.ToString("hh\\:mm")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var companyGroup in vehicleGroups)
+                        {
+                            <tr class="schedule-company-row" data-company-id="@companyGroup.Key.CompanyId">
+                                <td colspan="@(slots.Count + 1)">
+                                    <div class="schedule-company-row-bar">
+                                        <div>
+                                            <strong>@companyGroup.Key.CompanyName</strong>
+                                            <span class="mini-company-id ms-2">CID @companyGroup.Key.CompanyId</span>
+                                        </div>
+                                        <div class="schedule-company-row-meta">
+                                            <span>@companyGroup.Count() unit</span>
+                                            <span>@Model.ExistingSessions.Count(x => x.CompanyId == companyGroup.Key.CompanyId) sesi</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            @foreach (var vehicle in companyGroup.OrderBy(x => x.VehicleName))
+                            {
+                                <tr class="schedule-board-row" data-company-id="@vehicle.CompanyId" data-vehicle-name="@vehicle.VehicleName" data-simper-type="@vehicle.SimperType" data-company-name="@companyGroup.Key.CompanyName">
+                                    <td class="schedule-vehicle-cell">
+                                        <div class="schedule-vehicle-card">
+                                            <div class="vehicle-kicker">@companyGroup.Key.CompanyName</div>
+                                            <div class="vehicle-title">@vehicle.VehicleName</div>
+                                            <div class="vehicle-meta">
+                                                <i class="fas fa-shield-heart me-1"></i>Praktek · @vehicle.SimperType
+                                                <span class="mini-company-id ms-1">CID @vehicle.CompanyId</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    @foreach (var slot in slots)
+                                    {
+                                        var localSlot = selectedDate.Add(slot);
+                                        var utcSlot = DateTime.SpecifyKind(localSlot, DateTimeKind.Local).ToUniversalTime();
+                                        var slotItems = Model.ExistingSessions
+                                            .Where(x => x.VehicleId == vehicle.Id && x.ScheduledAt == utcSlot)
+                                            .OrderBy(x => x.Nrp)
+                                            .ToList();
+
+                                        <td class="schedule-slot practical-slot" data-vehicle-id="@vehicle.Id" data-scheduled-at="@utcSlot.ToString("O")">
+                                            <div class="schedule-slot-stack">
+                                                @foreach (var item in slotItems)
+                                                {
+                                                    var theoryDone = theoryDoneKeys.Contains($"{item.Nrp}|{item.VehicleId}");
+                                                    <div class="scheduled-chip schedule-session-card schedule-session-card--practical scheduled-@item.Status practical-scheduled-chip"
+                                                         data-session-id="@item.Id"
+                                                         data-company-id="@item.CompanyId"
+                                                         data-company-name="@item.CompanyName"
+                                                         data-vehicle-id="@item.VehicleId"
+                                                         data-vehicle-name="@item.VehicleName"
+                                                         data-instructor="@item.InstructorName"
+                                                         data-status="@item.Status"
+                                                         data-nrp="@item.Nrp"
+                                                         data-name="@item.EmployeeName"
+                                                         draggable="true">
+                                                        <div class="schedule-session-card-head">
+                                                            <div class="schedule-session-card-code text-truncate d-flex align-items-center gap-2">
+                                                                @if (theoryDone)
+                                                                {
+                                                                    <span class="schedule-cross-dot theory-done pulse-dot" title="Teori sudah selesai"></span>
+                                                                }
+                                                                <span>@item.Nrp</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="schedule-session-card-body">
+                                                            <div class="schedule-session-card-title text-truncate">@item.EmployeeName</div>
+                                                            <div class="schedule-session-card-meta text-truncate">@item.InstructorName</div>
+                                                        </div>
+                                                        <div class="schedule-session-card-foot">
+                                                            <span class="schedule-status-pill schedule-status-@item.Status.Replace(" ", "_")">@item.Status</span>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-practical-session" data-session-id="@item.Id" draggable="false">
+                                                                <i class="fas fa-xmark"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (slotItems.Count == 0)
+                                                {
+                                                    <div class="schedule-slot-empty">Belum ada jadwal praktek</div>
+                                                }
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="practicalLinkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content schedule-access-modal">
+            <div class="modal-header">
+                <div>
+                    <div class="schedule-access-kicker">Evaluation Link Copied</div>
+                    <h5 class="modal-title mb-0">Link penilaian instruktur berhasil disalin</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="schedule-access-hero">
+                    <div class="schedule-access-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <div class="schedule-access-title" id="practicalLinkEmployee">Peserta praktek</div>
+                        <div class="schedule-access-subtitle" id="practicalLinkVehicle">Detail penugasan instruktur tampil di bawah ini.</div>
+                    </div>
+                </div>
+
+                <div class="schedule-access-grid">
+                    <div class="schedule-access-card">
+                        <span>Evaluation Link</span>
+                        <strong id="practicalLinkUrl">-</strong>
+                    </div>
+                    <div class="schedule-access-card">
+                        <span>Instruktur</span>
+                        <strong id="practicalLinkInstructor">-</strong>
+                    </div>
+                    <div class="schedule-access-card">
+                        <span>Jam Praktek</span>
+                        <strong id="practicalLinkTime">-</strong>
+                    </div>
+                </div>
+
+                <div class="schedule-access-note">
+                    Link ini aman untuk dikirim ke instruktur. Saat dibuka, instruktur tetap harus login dan hanya bisa melihat sesi yang memang ditugaskan kepadanya.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" id="practicalLinkCopyAgain">Salin Lagi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.practicalScheduleConfig = {
+            date: "@selectedDate.ToString("yyyy-MM-dd")"
+        };
+    </script>
+    <script src="~/js/admin-practical-schedules.js" asp-append-version="true"></script>
+}

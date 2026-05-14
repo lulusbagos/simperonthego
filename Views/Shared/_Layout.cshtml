@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Simper On The Go | PT INDEXIM COALINDO</title>
+    <link rel="icon" type="image/x-icon" href="~/logo/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="~/logo/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="~/logo/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="~/logo/apple-touch-icon.png" />
+    <link rel="manifest" href="~/logo/site.webmanifest" />
+    <meta name="theme-color" content="#244b42" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-premium.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SimperSecureOnlineTestSystem.styles.css" asp-append-version="true" />
+</head>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    var hidePublicChrome = ViewData["HidePublicChrome"] as bool? ?? false;
+    var adminBodyClass = !hidePublicChrome && (currentController is "Admin" or "Account" or "Practical" ||
+        (currentController == "Exam" && currentAction == "PublicSummary"))
+        ? "admin-cms"
+        : string.Empty;
+    var isWorkspacePage = User.Identity?.IsAuthenticated == true &&
+        (currentController == "Admin" || currentController == "Practical" || (currentController == "Account" && currentAction == "Profile"));
+    var bodyClass = isWorkspacePage
+        ? "admin-cms hold-transition sidebar-mini layout-fixed layout-navbar-fixed"
+        : adminBodyClass;
+    var pageBodyClass = ViewData["BodyClass"]?.ToString();
+    if (!string.IsNullOrWhiteSpace(pageBodyClass))
+    {
+        bodyClass = string.IsNullOrWhiteSpace(bodyClass)
+            ? pageBodyClass
+            : $"{bodyClass} {pageBodyClass}";
+    }
+    var currentName = User.Identity?.Name?.Trim();
+    var userInitials = string.IsNullOrWhiteSpace(currentName)
+        ? "AD"
+        : string.Concat(currentName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+    var currentRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? string.Empty;
+    var currentCompanyClaim = User.FindFirst("company_id")?.Value;
+    var scopeLabel = User.IsInRole("Administrator")
+        ? "Global Access"
+        : !string.IsNullOrWhiteSpace(currentCompanyClaim)
+            ? $"Company Scope · CID {currentCompanyClaim}"
+            : "Scoped Access";
+    var roleLabel = currentRole switch
+    {
+        "Administrator" => "Administrator",
+        "CompanyAdmin" => "Company Admin",
+        "Instructor" => "Instructor",
+        _ => "Workspace User"
+    };
+    var flashError = TempData["ScheduleError"]?.ToString()
+        ?? TempData["QuestionError"]?.ToString()
+        ?? TempData["CompanyError"]?.ToString()
+        ?? TempData["UserError"]?.ToString()
+        ?? TempData["PracticalError"]?.ToString();
+    var flashSuccess = TempData["ScheduleSuccess"]?.ToString()
+        ?? TempData["QuestionSuccess"]?.ToString()
+        ?? TempData["CompanySuccess"]?.ToString()
+        ?? TempData["UserSuccess"]?.ToString()
+        ?? TempData["PracticalSuccess"]?.ToString();
+    var flashInfo = TempData["FlashInfo"]?.ToString();
+}
+<body class="@bodyClass">
+    @if (isWorkspacePage)
+    {
+        <div class="wrapper" id="adminWrapper">
+            <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom-0">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" data-widget="pushmenu" href="#" role="button" id="sidebarToggleTop">
+                            <i class="fas fa-bars"></i>
+                        </a>
+                    </li>
+                </ul>
+
+                <ul class="navbar-nav ms-auto d-flex align-items-center gap-2">
+                    <li class="nav-item d-none d-lg-flex align-items-center">
+                        <div class="admin-presence-pill">
+                            <span class="admin-presence-avatar">@userInitials</span>
+                            <span>
+                                <strong>@User.Identity?.Name</strong>
+                                <small>@roleLabel</small>
+                            </span>
+                        </div>
+                    </li>
+                    <li class="nav-item d-none d-xl-flex align-items-center">
+                        <span class="admin-scope-pill">@scopeLabel</span>
+                    </li>
+                    <li class="nav-item">
+                        <div class="admin-theme-palette" aria-label="Pilih Tema">
+                            <button type="button" class="theme-dot" data-admin-theme-btn="emerald-command" title="Green Blue" onclick="window.setAdminTheme && window.setAdminTheme('emerald-command')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="forest-slate" title="Steel Blue" onclick="window.setAdminTheme && window.setAdminTheme('forest-slate')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="navy-gold" title="Navy Gold" onclick="window.setAdminTheme && window.setAdminTheme('navy-gold')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="jade-corporate" title="Charcoal Teal" onclick="window.setAdminTheme && window.setAdminTheme('jade-corporate')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="slate-amber" title="Slate Amber" onclick="window.setAdminTheme && window.setAdminTheme('slate-amber')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="sage-professional" title="Purple Pink" onclick="window.setAdminTheme && window.setAdminTheme('sage-professional')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="rose-lilac" title="Rose Lilac" onclick="window.setAdminTheme && window.setAdminTheme('rose-lilac')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="pine-night" title="Magenta Night" onclick="window.setAdminTheme && window.setAdminTheme('pine-night')"></button>
+                            <button type="button" class="theme-dot" data-admin-theme-btn="forest-night" title="Forest Night" onclick="window.setAdminTheme && window.setAdminTheme('forest-night')"></button>
+                            <select id="adminThemeSelect" class="admin-theme-select" aria-label="Pilih Tema">
+                                <option value="">Ikuti Tema Aplikasi</option>
+                                <option value="emerald-command">Green Blue</option>
+                                <option value="navy-gold">Navy Gold</option>
+                                <option value="jade-corporate">Charcoal Teal</option>
+                                <option value="slate-amber">Slate Amber</option>
+                                <option value="sage-professional">Purple Pink</option>
+                                <option value="rose-lilac">Rose Lilac</option>
+                                <option value="pine-night">Magenta Night</option>
+                                <option value="forest-slate">Steel Blue</option>
+                                <option value="forest-night">Forest Night</option>
+                            </select>
+                            <span class="admin-theme-label" id="adminThemeLabel">Ikuti Tema Aplikasi</span>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-sm btn-outline-primary admin-top-btn" asp-controller="Account" asp-action="Profile">
+                            <i class="fas fa-user-gear me-1"></i>Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger admin-top-btn">
+                                <i class="fas fa-right-from-bracket me-1"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+
+            <aside class="main-sidebar elevation-4" id="adminSidebar">
+                <a class="brand-link" asp-controller="Admin" asp-action="Dashboard">
+                    <span class="admin-brand-logo-wrap">
+                        <img src="~/logo/logo.png" alt="PT INDEXIM COALINDO" class="brand-logo-image admin-brand-logo-image" />
+                    </span>
+                    <span class="admin-brand-text-wrap">
+                        <small class="admin-brand-kicker">SIMPER Platform</small>
+                        <span class="admin-brand-title">Simper On The Go</span>
+                        <small class="admin-brand-sub">PT INDEXIM COALINDO</small>
+                    </span>
+                </a>
+
+                <div class="sidebar">
+                    <div class="admin-sidebar-hero">
+                        <div class="admin-sidebar-kicker">Premium Control Deck</div>
+                        <div class="admin-sidebar-copy">Teori, praktek, monitoring, dan distribusi penilaian instruktur dalam satu workspace.</div>
+                        <div class="admin-sidebar-scope">@scopeLabel</div>
+                    </div>
+                    <nav class="mt-2">
+                        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                            @if (User.IsInRole("Administrator") || User.IsInRole("CompanyAdmin"))
+                            {
+                                <li class="nav-header admin-nav-header">Monitoring</li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Dashboard" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Dashboard">
+                                        <i class="nav-icon fas fa-gauge-high"></i>
+                                        <p>Ringkasan Operasional</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Results" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Results">
+                                        <i class="nav-icon fas fa-square-poll-vertical"></i>
+                                        <p>Hasil Summary Tes</p>
+                                    </a>
+                                </li>
+                                <li class="nav-header admin-nav-header">Assessment</li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Schedules" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Schedules">
+                                        <i class="nav-icon fas fa-calendar-days"></i>
+                                        <p>Jadwal Teori</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "PracticalTemplates" ? "active" : string.Empty)" asp-controller="Admin" asp-action="PracticalTemplates">
+                                        <i class="nav-icon fas fa-clipboard-list"></i>
+                                        <p>Template Praktek</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "PracticalSessions" ? "active" : string.Empty)" asp-controller="Admin" asp-action="PracticalSessions">
+                                        <i class="nav-icon fas fa-share-nodes"></i>
+                                        <p>Jadwal Praktek</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentController == "Practical" && currentAction == "MyAssignments" ? "active" : string.Empty)" asp-controller="Practical" asp-action="MyAssignments">
+                                        <i class="nav-icon fas fa-user-check"></i>
+                                        <p>Monitor Penilaian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-header admin-nav-header">Master Data</li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Employees" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Employees">
+                                        <i class="nav-icon fas fa-users"></i>
+                                        <p>Direktori Peserta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Vehicles" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Vehicles">
+                                        <i class="nav-icon fas fa-truck"></i>
+                                        <p>Master Unit</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Questions" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Questions">
+                                        <i class="nav-icon fas fa-circle-question"></i>
+                                        <p>Bank Soal</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Instructors" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Instructors">
+                                        <i class="nav-icon fas fa-chalkboard-user"></i>
+                                        <p>Master Instruktur</p>
+                                    </a>
+                                </li>
+                            }
+                            else if (User.IsInRole("Instructor"))
+                            {
+                                <li class="nav-header admin-nav-header">Instruktur</li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentController == "Practical" && currentAction == "MyAssignments" ? "active" : string.Empty)" asp-controller="Practical" asp-action="MyAssignments">
+                                        <i class="nav-icon fas fa-clipboard-check"></i>
+                                        <p>Assignment Praktek</p>
+                                    </a>
+                                </li>
+                            }
+                            @if (User.IsInRole("Administrator"))
+                            {
+                                <li class="nav-header admin-nav-header">Sistem</li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(currentAction == "Users" ? "active" : string.Empty)" asp-controller="Admin" asp-action="Users">
+                                        <i class="nav-icon fas fa-user-gear"></i>
+                                        <p>Manajemen Akses</p>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            </aside>
+
+            <div class="content-wrapper" id="contentWrapper">
+                <section class="content pt-3">
+                    <div class="container-fluid pb-4">
+                        <main role="main">
+                            @RenderBody()
+                        </main>
+                    </div>
+                </section>
+            </div>
+
+            <footer class="main-footer small text-muted">
+                <strong>&copy; 2026 - Simper On The Go | PT INDEXIM COALINDO</strong>
+            </footer>
+        </div>
+    }
+    else if (!hidePublicChrome)
+    {
+        <header class="public-shell">
+            <nav class="navbar navbar-expand-lg navbar-dark public-navbar border-bottom shadow-sm mb-4">
+                <div class="container">
+                    <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Exam" asp-action="EnterRefId">
+                        <span class="brand-mark">
+                            <img src="~/logo/logo.png" alt="PT INDEXIM COALINDO" class="brand-logo-image public-brand-logo-image" />
+                        </span>
+                        <span class="brand-text-wrap">
+                            <small class="brand-kicker">SIMPER Platform</small>
+                            <span class="brand-title">Simper On The Go</span>
+                            <small>PT INDEXIM COALINDO</small>
+                        </span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Exam" asp-action="EnterRefId">Portal Peserta</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Overview</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Permit" asp-action="Index">Ketentuan Jalan Hauling</a>
+                            </li>
+                        </ul>
+                        <ul class="navbar-nav">
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light nav-cta" asp-controller="@(User.IsInRole("Instructor") ? "Practical" : "Admin")" asp-action="@(User.IsInRole("Instructor") ? "MyAssignments" : "Dashboard")">Workspace</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light nav-cta" asp-controller="Account" asp-action="Login">Admin Login</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <div class="public-network-bg" aria-hidden="true">
+            <canvas id="publicNetworkCanvas"></canvas>
+        </div>
+        <div class="container pb-4 public-main">
+            <div class="public-statusbar">
+                <span class="public-status-chip">Tes Teori Terproteksi</span>
+                <span class="public-status-chip">Distribusi Form Praktek</span>
+                <span class="public-status-chip">Live Proctoring Ready</span>
+                <span class="public-status-chip public-network-chip" data-network-indicator>
+                    <i class="fas fa-wifi" data-network-icon></i>
+                    <strong data-network-label>Memeriksa jaringan...</strong>
+                    <small data-network-detail>Pastikan koneksi stabil.</small>
+                </span>
+            </div>
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
+        </div>
+
+        <footer class="border-top footer text-muted public-footer">
+            <div class="container">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-2 py-2">
+                    <span>&copy; 2026 - Simper On The Go | PT INDEXIM COALINDO</span>
+                    <span class="footer-meta">Assessment Platform for Operational Safety Certification</span>
+                </div>
+            </div>
+        </footer>
+    }
+    else
+    {
+        <div class="public-network-bg" aria-hidden="true">
+            <canvas id="publicNetworkCanvas"></canvas>
+        </div>
+        <main role="main" class="pb-0">
+            @RenderBody()
+        </main>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <div class="modal fade" id="appMessageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content app-message-modal">
+                <div class="modal-header">
+                    <div>
+                        <div class="app-message-kicker" id="appMessageKicker">System Notice</div>
+                        <h5 class="modal-title mb-0" id="appMessageTitle">Informasi Sistem</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="appMessageBody"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(flashError) || !string.IsNullOrWhiteSpace(flashSuccess) || !string.IsNullOrWhiteSpace(flashInfo))
+    {
+        <script>
+            window.__appInitialMessage = {
+                type: "@(!string.IsNullOrWhiteSpace(flashError) ? "error" : !string.IsNullOrWhiteSpace(flashSuccess) ? "success" : "info")",
+                title: "@(!string.IsNullOrWhiteSpace(flashError) ? "Terjadi Kendala" : !string.IsNullOrWhiteSpace(flashSuccess) ? "Proses Berhasil" : "Informasi")",
+                message: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(flashError ?? flashSuccess ?? flashInfo ?? string.Empty))
+            };
+        </script>
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("@Url.Content("~/sw.js")").catch(function () {
+                    // Ignore registration failures silently.
+                });
+            });
+        }
+    </script>
+    <script src="~/js/admin-theme.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

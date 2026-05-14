@@ -1,0 +1,87 @@
+@model SimperSecureOnlineTestSystem.ViewModels.CompanyManageViewModel
+@{
+    ViewData["Title"] = "Manage Companies";
+}
+
+@if (TempData["CompanySuccess"] is string companySuccess)
+{
+    <div class="alert alert-success">@companySuccess</div>
+}
+
+@if (TempData["CompanyError"] is string companyError)
+{
+    <div class="alert alert-danger">@companyError</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Tambah Company</div>
+            <div class="card-body">
+                <form asp-action="Companies" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="mb-3">
+                        <label asp-for="CompanyName" class="form-label"></label>
+                        <input asp-for="CompanyName" class="form-control" placeholder="Nama company" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Simpan Company</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">Daftar Company</div>
+            <div class="table-responsive">
+                <table class="table table-sm premium-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nama Company</th>
+                            <th style="min-width:280px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ExistingCompanies.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Belum ada data company.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var company in Model.ExistingCompanies)
+                            {
+                                <tr>
+                                    <td>@company.Id</td>
+                                    <td>@company.CompanyName</td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <form asp-action="UpdateCompany" method="post" class="d-flex gap-2 flex-grow-1">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="CompanyId" value="@company.Id" />
+                                                <input type="text" name="CompanyName" class="form-control form-control-sm" value="@company.CompanyName" required />
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                                            </form>
+                                            <form asp-action="DeleteCompany" method="post" onsubmit="return confirm('Hapus company ini?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="companyId" value="@company.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

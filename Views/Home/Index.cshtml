@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Simper On The Go";
+}
+
+<div class="landing-shell participant-flow">
+    <div class="landing-hero participant-card mb-4 hero-premium" data-animate="reveal">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-7">
+                <div class="hero-logo-row mb-3">
+                    <span class="hero-logo-badge">
+                        <img src="~/logo/logo.png" alt="PT INDEXIM COALINDO" />
+                    </span>
+                    <div>
+                        <div class="hero-kicker">Premium Digital Assessment</div>
+                        <div class="hero-company">PT INDEXIM COALINDO</div>
+                    </div>
+                </div>
+                <h1 class="display-6 fw-bold mb-3">Simper On The Go</h1>
+                <p class="text-muted mb-4">
+                    Platform ujian SIMPER dengan pengalaman yang lebih modern, aman, dan terstruktur.
+                    Admin mengatur jadwal dan bank soal, peserta masuk lewat <strong>Ref ID</strong>, hasil ujian tersimpan real-time.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-controller="Exam" asp-action="EnterRefId" class="btn btn-primary px-4">Masuk Portal Peserta</a>
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary px-4">Masuk Admin</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="hero-preview-panel">
+                    <div class="hero-preview-top">
+                        <span class="hero-preview-label">Assessment Snapshot</span>
+                        <span class="hero-preview-pill">Premium UI</span>
+                    </div>
+                    <div class="hero-preview-metric">
+                        <strong>Live Monitoring</strong>
+                        <span>Dashboard assessor dengan status kamera, skor, dan suspicious activity.</span>
+                    </div>
+                    <div class="hero-preview-metric">
+                        <strong>Question Bank Pro</strong>
+                        <span>Soal tersusun per vehicle, difficulty, dan siap diimpor massal.</span>
+                    </div>
+                    <div class="hero-preview-metric">
+                        <strong>Fast Participant Flow</strong>
+                        <span>Masuk via Ref ID tanpa alur yang rumit.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="landing-metrics mb-4" data-animate="reveal" data-animate-delay="70">
+        <div class="landing-metric-card">
+            <div class="landing-metric-value">01</div>
+            <div class="landing-metric-label">Single Ref ID flow untuk peserta</div>
+        </div>
+        <div class="landing-metric-card">
+            <div class="landing-metric-value">24/7</div>
+            <div class="landing-metric-label">Monitoring dashboard siap dipakai assessor</div>
+        </div>
+        <div class="landing-metric-card">
+            <div class="landing-metric-value">Pro</div>
+            <div class="landing-metric-label">Tema premium untuk public portal dan admin CMS</div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 participant-step-card border-0 tutorial-card" data-animate="reveal" data-animate-delay="80">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Langkah 1</div>
+                    <h5 class="fw-semibold mb-2">Admin Menyusun Sesi</h5>
+                    <p class="text-muted mb-0 small">Admin memilih peserta, company, dan vehicle agar sesi lebih presisi.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 participant-step-card border-0 tutorial-card" data-animate="reveal" data-animate-delay="130">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Langkah 2</div>
+                    <h5 class="fw-semibold mb-2">Ref ID Dibagikan</h5>
+                    <p class="text-muted mb-0 small">Sistem menghasilkan akses unik yang cepat dan mudah dipakai peserta.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 participant-step-card border-0 tutorial-card" data-animate="reveal" data-animate-delay="180">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Langkah 3</div>
+                    <h5 class="fw-semibold mb-2">Peserta Menyelesaikan Ujian</h5>
+                    <p class="text-muted mb-0 small">Kamera, timer, dan navigasi soal sudah siap sejak awal sesi berjalan.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 participant-step-card border-0 tutorial-card" data-animate="reveal" data-animate-delay="220">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">Langkah 4</div>
+                    <h5 class="fw-semibold mb-2">Hasil Tersimpan Real-Time</h5>
+                    <p class="text-muted mb-0 small">Skor dan histori ujian langsung dapat dipantau dari dashboard admin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,218 @@
+@model SimperSecureOnlineTestSystem.ViewModels.VehicleManageViewModel
+@{
+    ViewData["Title"] = "Manage Vehicles";
+    var companyMap = Model.ExistingCompanies.ToDictionary(x => x.Id, x => x.CompanyName);
+    var typeSummary = Model.ExistingVehicles
+        .GroupBy(x => x.SimperType)
+        .OrderByDescending(x => x.Count())
+        .Take(5)
+        .ToList();
+    var totalCompanies = Model.ExistingVehicles.Select(x => x.CompanyId).Distinct().Count();
+    var latestUnits = Model.ExistingVehicles
+        .OrderByDescending(x => x.CreatedAt)
+        .Take(3)
+        .ToList();
+}
+
+<div class="page-head vehicle-page-head">
+    <div>
+        <div class="dash-kicker">Fleet Control</div>
+        <h4 class="page-title">Vehicle Registry</h4>
+        <p class="page-subtitle">Workspace untuk menata armada, mengelompokkan tipe SIMPER, dan memastikan setiap unit siap dipakai pada scheduling serta exam flow.</p>
+    </div>
+    <div class="toolbar">
+        <span class="metric-chip">Total Unit: @Model.ExistingVehicles.Count</span>
+        <span class="metric-chip">Company Aktif: @totalCompanies</span>
+        <span class="metric-chip">Tipe SIMPER: @Model.ExistingVehicles.Select(x => x.SimperType).Distinct().Count()</span>
+    </div>
+</div>
+
+<div class="vehicle-hero-shell mb-4">
+    <div class="vehicle-hero-panel">
+        <div class="vehicle-hero-kicker">Fleet Snapshot</div>
+        <h5 class="vehicle-hero-title">Katalog unit untuk assessor dan scheduler.</h5>
+        <p class="vehicle-hero-copy">Form di panel kiri digunakan untuk menambah unit baru. Panel kanan menampilkan direktori kendaraan dengan visual yang lebih jelas untuk inspeksi cepat.</p>
+        <div class="vehicle-hero-tags">
+            <span class="vehicle-hero-tag">Scheduling Ready</span>
+            <span class="vehicle-hero-tag">Question Bank Linked</span>
+            <span class="vehicle-hero-tag">Company Scoped</span>
+        </div>
+    </div>
+
+    <div class="vehicle-hero-stats">
+        <div class="vehicle-stat-tile">
+            <div class="vehicle-stat-label">Active Fleet</div>
+            <div class="vehicle-stat-value">@Model.ExistingVehicles.Count</div>
+        </div>
+        <div class="vehicle-stat-tile">
+            <div class="vehicle-stat-label">Top Category</div>
+            <div class="vehicle-stat-value small-text">@(typeSummary.FirstOrDefault()?.Key ?? "-")</div>
+        </div>
+        <div class="vehicle-stat-tile">
+            <div class="vehicle-stat-label">Latest Entry</div>
+            <div class="vehicle-stat-value small-text">@(latestUnits.FirstOrDefault()?.VehicleName ?? "-")</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-4">
+        <div class="premium-shell p-3 h-100 vehicle-form-shell">
+            <div class="vehicle-panel-kicker">Vehicle Setup</div>
+            <h5 class="mb-1">Tambah Unit Baru</h5>
+            <p class="text-muted small mb-3">Gunakan penamaan yang konsisten agar unit mudah dipanggil pada proses generate sesi dan review hasil.</p>
+
+            <form asp-action="Vehicles" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="mb-3">
+                    <label asp-for="CompanyId" class="form-label small text-muted">Company</label>
+                    @if (Model.IsAdministrator)
+                    {
+                        <select asp-for="CompanyId" class="form-select">
+                            @foreach (var company in Model.ExistingCompanies)
+                            {
+                                <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input asp-for="CompanyId" type="hidden" />
+                        <div class="vehicle-static-field">
+                            @(companyMap.TryGetValue(Model.CompanyId, out var scopedCompanyName) ? scopedCompanyName : $"Company ID {Model.CompanyId}")
+                        </div>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="VehicleName" class="form-label small text-muted">Vehicle / Unit Name</label>
+                    <input asp-for="VehicleName" class="form-control" placeholder="Contoh: HD 785, Crane Truck, PC 2000" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="SimperType" class="form-label small text-muted">SIMPER Type</label>
+                    <input asp-for="SimperType" class="form-control" placeholder="Contoh: Dump Truck, Excavator, Crane" />
+                </div>
+
+                <div class="vehicle-form-note mb-3">
+                    Struktur yang disarankan:
+                    <strong>nama unit</strong> untuk identitas kendaraan dan
+                    <strong>SIMPER type</strong> untuk klasifikasi pengujian.
+                </div>
+
+                <div class="vehicle-suggestion-block mb-3">
+                    <div class="vehicle-suggestion-title">Quick Suggestions</div>
+                    <div class="vehicle-suggestion-chips">
+                        <span>HD 785</span>
+                        <span>LV</span>
+                        <span>Crane Truck</span>
+                        <span>PC 200</span>
+                        <span>PC 1000</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Simpan Vehicle</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-xl-8">
+        <div class="vehicle-summary-grid mb-3">
+            <div class="vehicle-summary-card">
+                <div class="vehicle-summary-icon fleet">
+                    <i class="fas fa-truck-front"></i>
+                </div>
+                <div class="vehicle-summary-label">Active Fleet</div>
+                <div class="vehicle-summary-value">@Model.ExistingVehicles.Count</div>
+                <div class="vehicle-summary-meta">Unit terdaftar pada scope saat ini</div>
+            </div>
+            <div class="vehicle-summary-card">
+                <div class="vehicle-summary-icon company">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="vehicle-summary-label">Companies</div>
+                <div class="vehicle-summary-value">@totalCompanies</div>
+                <div class="vehicle-summary-meta">Perusahaan dengan unit aktif</div>
+            </div>
+            <div class="vehicle-summary-card">
+                <div class="vehicle-summary-icon category">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <div class="vehicle-summary-label">Top Type</div>
+                <div class="vehicle-summary-value">@(typeSummary.FirstOrDefault()?.Count() ?? 0)</div>
+                <div class="vehicle-summary-meta">Unit pada kategori terpadat</div>
+            </div>
+        </div>
+
+        <div class="premium-shell p-3 h-100">
+            <div class="vehicle-directory-topbar">
+                <div>
+                    <h5 class="mb-1">Vehicle Directory</h5>
+                    <p class="text-muted small mb-0">Direktori unit operasional yang siap dipakai pada sesi ujian dan scheduling.</p>
+                </div>
+                <div class="vehicle-type-chips">
+                    @if (typeSummary.Count == 0)
+                    {
+                        <span class="vehicle-type-chip">Belum ada data</span>
+                    }
+                    else
+                    {
+                        @foreach (var group in typeSummary)
+                        {
+                            <span class="vehicle-type-chip">@group.Key <strong>@group.Count()</strong></span>
+                        }
+                    }
+                </div>
+            </div>
+
+            @if (Model.ExistingVehicles.Count == 0)
+            {
+                <div class="vehicle-empty-state">
+                    <i class="fas fa-truck-front"></i>
+                    <div>
+                        <strong>Belum ada vehicle yang terdaftar.</strong>
+                        <p class="mb-0 text-muted small">Tambahkan unit pertama dari panel kiri untuk mulai menyusun sesi ujian.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="vehicle-list-grid">
+                    @foreach (var item in Model.ExistingVehicles.OrderBy(x => x.VehicleName).ThenBy(x => x.SimperType))
+                    {
+                        var companyName = companyMap.TryGetValue(item.CompanyId, out var c) ? c : $"Company ID {item.CompanyId}";
+                        <article class="vehicle-directory-card">
+                            <div class="vehicle-directory-head">
+                                <div>
+                                    <div class="vehicle-directory-kicker">Vehicle Unit</div>
+                                    <h6 class="vehicle-directory-title">@item.VehicleName</h6>
+                                </div>
+                                <span class="vehicle-directory-icon">
+                                    <i class="fas fa-truck-moving"></i>
+                                </span>
+                            </div>
+
+                            <div class="vehicle-directory-meta">
+                                <span class="vehicle-directory-type">@item.SimperType</span>
+                                <span class="vehicle-directory-company">CID @item.CompanyId</span>
+                            </div>
+
+                            <div class="vehicle-directory-company-name">@companyName</div>
+
+                            <div class="vehicle-directory-footer">
+                                <span class="vehicle-directory-status">Ready for scheduling</span>
+                                <span class="vehicle-directory-date">@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</span>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

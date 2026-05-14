@@ -1,0 +1,286 @@
+@model SimperSecureOnlineTestSystem.ViewModels.UserManageViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Manage Users";
+    var userCount = Model.ExistingUsers.Count;
+    var companyAdminCount = Model.ExistingUsers.Count(x => x.Role == SystemUserRole.CompanyAdmin);
+    var systemAdminCount = Model.ExistingUsers.Count(x => x.Role == SystemUserRole.Administrator);
+    var instructorCount = Model.ExistingUsers.Count(x => x.Role == SystemUserRole.Instructor);
+}
+
+<div class="page-head">
+    <div>
+        <h4 class="page-title">User & Akses Admin</h4>
+        <p class="page-subtitle">Kelola akun admin dari satu halaman: tambah user via modal, atur company, update role, dan reset password.</p>
+    </div>
+    <div class="toolbar d-flex gap-2 flex-wrap">
+        <span class="metric-chip">Total User: @userCount</span>
+        <span class="metric-chip">Company Admin: @companyAdminCount</span>
+        <span class="metric-chip">Administrator: @systemAdminCount</span>
+        <span class="metric-chip">Instructor: @instructorCount</span>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-user-plus me-1"></i>Tambah User
+        </button>
+    </div>
+</div>
+
+@if (TempData["UserSuccess"] is string userSuccess)
+{
+    <div class="alert alert-success users-alert">@userSuccess</div>
+}
+
+@if (TempData["UserError"] is string userError)
+{
+    <div class="alert alert-danger users-alert">@userError</div>
+}
+
+@if (TempData["UserResetNewPassword"] is string generatedPassword)
+{
+    <div class="alert alert-warning users-alert d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+        <div>
+            <strong>Password baru:</strong>
+            <code id="newPasswordText" class="ms-1">@generatedPassword</code>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-dark" id="copyNewPasswordBtn">Copy Password</button>
+    </div>
+}
+
+<div class="users-summary-grid mb-3">
+    <div class="users-summary-card">
+        <span>Total User</span>
+        <strong>@userCount</strong>
+    </div>
+    <div class="users-summary-card">
+        <span>Administrator</span>
+        <strong>@systemAdminCount</strong>
+    </div>
+    <div class="users-summary-card">
+        <span>Company Admin</span>
+        <strong>@companyAdminCount</strong>
+    </div>
+    <div class="users-summary-card">
+        <span>Instructor</span>
+        <strong>@instructorCount</strong>
+    </div>
+</div>
+
+<div class="premium-shell p-3 schedule-block users-table-shell">
+    <div class="users-table-head">
+        <div>
+            <h5 class="mb-1">Direktori User Login</h5>
+            <p class="text-muted mb-0 small">Kelola profil user, role, company scope, reset password, dan penghapusan akses.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table premium-table align-middle users-table">
+            <thead>
+                <tr>
+                    <th style="min-width: 250px;">User</th>
+                    <th style="min-width: 170px;">Role</th>
+                    <th style="min-width: 220px;">Company</th>
+                    <th style="min-width: 300px;">Update</th>
+                    <th style="min-width: 230px;">Reset Password</th>
+                    <th style="min-width: 120px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.ExistingUsers)
+                {
+                    var initials = string.IsNullOrWhiteSpace(user.FullName)
+                        ? "U"
+                        : string.Concat(user.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])));
+                    <tr>
+                        <td>
+                            <div class="users-identity">
+                                <span class="users-identity-avatar">@initials</span>
+                                <div>
+                                    <strong>@user.FullName</strong>
+                                    <span>@user.Username</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="users-role-badge role-@user.Role.ToLowerInvariant()">
+                                @(user.Role == SystemUserRole.CompanyAdmin ? "Company Admin" : user.Role)
+                            </span>
+                        </td>
+                        <td>
+                            @if (user.CompanyId.HasValue)
+                            {
+                                var company = Model.ExistingCompanies.FirstOrDefault(c => c.Id == user.CompanyId.Value);
+                                <span class="small text-muted">CID @user.CompanyId</span><br />
+                                <span class="fw-semibold">@((company?.CompanyName) ?? "-")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            <form asp-action="UpdateUser" method="post" class="users-inline-form users-inline-card">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="UserId" value="@user.Id" />
+                                <div class="d-grid gap-2">
+                                    <input type="text" name="FullName" class="form-control form-control-sm" value="@user.FullName" required placeholder="Nama lengkap" />
+                                    <div class="d-flex gap-2">
+                                        <select name="Role" class="form-select form-select-sm js-user-role">
+                                            @if (user.Role == SystemUserRole.CompanyAdmin)
+                                            {
+                                                <option value="@SystemUserRole.CompanyAdmin" selected>@SystemUserRole.CompanyAdmin</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@SystemUserRole.CompanyAdmin">@SystemUserRole.CompanyAdmin</option>
+                                            }
+                                            @if (user.Role == SystemUserRole.Instructor)
+                                            {
+                                                <option value="@SystemUserRole.Instructor" selected>@SystemUserRole.Instructor</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@SystemUserRole.Instructor">@SystemUserRole.Instructor</option>
+                                            }
+                                            @if (user.Role == SystemUserRole.Administrator)
+                                            {
+                                                <option value="@SystemUserRole.Administrator" selected>@SystemUserRole.Administrator</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@SystemUserRole.Administrator">@SystemUserRole.Administrator</option>
+                                            }
+                                        </select>
+                                        <select name="CompanyId" class="form-select form-select-sm js-company-select">
+                                            <option value="">Pilih Company</option>
+                                            @foreach (var company in Model.ExistingCompanies)
+                                            {
+                                                if (user.CompanyId == company.Id)
+                                                {
+                                                    <option value="@company.Id" selected>CID @company.Id - @company.CompanyName</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary">Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </td>
+                        <td>
+                            <div class="users-inline-card">
+                                <form asp-action="ResetUserPassword" method="post" class="d-flex gap-2 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="UserId" value="@user.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Reset Otomatis & Tampilkan</button>
+                                </form>
+                                <small class="text-muted d-block mt-1">Password baru akan muncul di atas halaman.</small>
+                            </div>
+                        </td>
+                        <td>
+                            <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Hapus user ini dari akses login?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow users-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah User Login</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Users" method="post" id="addUserForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                    <div class="mb-2">
+                        <label asp-for="Username" class="form-label"></label>
+                        <input asp-for="Username" class="form-control" placeholder="username login" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" placeholder="minimal 6 karakter" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" placeholder="nama lengkap user" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Role" class="form-label"></label>
+                        <select asp-for="Role" class="form-select js-user-role">
+                            <option value="@SystemUserRole.CompanyAdmin">@SystemUserRole.CompanyAdmin</option>
+                            <option value="@SystemUserRole.Instructor">@SystemUserRole.Instructor</option>
+                            <option value="@SystemUserRole.Administrator">@SystemUserRole.Administrator</option>
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label asp-for="CompanyId" class="form-label">Company</label>
+                        <select asp-for="CompanyId" class="form-select js-company-select">
+                            <option value="">Pilih Company</option>
+                            @foreach (var company in Model.ExistingCompanies)
+                            {
+                                <option value="@company.Id">CID @company.Id - @company.CompanyName</option>
+                            }
+                        </select>
+                    </div>
+                    <small class="text-muted">Untuk role Administrator, company boleh dikosongkan.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const bindRoleCompanyRule = (root) => {
+                const role = root.querySelector(".js-user-role");
+                const company = root.querySelector(".js-company-select");
+                if (!role || !company) return;
+
+                const sync = () => {
+                    const requiresCompany = role.value === "@SystemUserRole.CompanyAdmin" || role.value === "@SystemUserRole.Instructor";
+                    company.required = requiresCompany;
+                    if (!requiresCompany) {
+                        company.value = "";
+                    }
+                };
+
+                role.addEventListener("change", sync);
+                sync();
+            };
+
+            document.querySelectorAll("form").forEach(bindRoleCompanyRule);
+
+            const copyBtn = document.getElementById("copyNewPasswordBtn");
+            if (copyBtn) {
+                copyBtn.addEventListener("click", async () => {
+                    const pwdEl = document.getElementById("newPasswordText");
+                    const text = pwdEl ? pwdEl.textContent : "";
+                    if (!text) return;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        copyBtn.textContent = "Copied";
+                    } catch (_e) {
+                        window.prompt("Copy password:", text);
+                    }
+                });
+            }
+        })();
+    </script>
+}

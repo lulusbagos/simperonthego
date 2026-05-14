@@ -1,0 +1,8 @@
+a.navbar-brand {
+  white-space: nowrap;
+}
+
+.footer {
+  position: static;
+  line-height: 1.4;
+}

@@ -1,0 +1,135 @@
+@model SimperSecureOnlineTestSystem.Application.DTOs.AnswerReviewDto
+@{
+    ViewData["Title"] = "Review Jawaban";
+    var totalQuestions = Model.Items.Count;
+    var correctAnswers = Model.Items.Count(x => x.IsCorrect);
+    var incorrectAnswers = totalQuestions - correctAnswers;
+    var accuracy = totalQuestions == 0 ? 0 : Math.Round((decimal)correctAnswers / totalQuestions * 100, 2);
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Theory Answer Audit</span>
+        <h4 class="page-title">Review Jawaban Peserta</h4>
+        <p class="page-subtitle">Audit jawaban teori per nomor untuk memastikan hasil ujian terbaca jelas dan rapi.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Session ID</span>
+                <strong>#@Model.SessionId</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Peserta</span>
+                <strong>@Model.Nrp</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Unit</span>
+                <strong>@Model.VehicleName</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar d-flex gap-2 flex-wrap">
+        <a asp-action="Results" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Kembali
+        </a>
+        <span class="metric-chip">Score: @Model.Score.ToString("0.##")</span>
+    </div>
+</div>
+
+<div class="answer-review-grid mb-3">
+    <section class="answer-review-card">
+        <div class="answer-review-title">Ringkasan Peserta</div>
+        <div class="answer-review-detail-grid">
+            <div>
+                <span>Nama Peserta</span>
+                <strong>@Model.EmployeeName</strong>
+            </div>
+            <div>
+                <span>NIK / NRP</span>
+                <strong>@Model.Nrp</strong>
+            </div>
+            <div>
+                <span>Unit Ujian</span>
+                <strong>@Model.VehicleName</strong>
+            </div>
+            <div>
+                <span>Nilai Teori</span>
+                <strong>@Model.Score.ToString("0.##")</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="answer-review-card">
+        <div class="answer-review-title">Ringkasan Akurasi</div>
+        <div class="answer-review-stat-grid">
+            <div class="answer-review-stat">
+                <span>Total Soal</span>
+                <strong>@totalQuestions</strong>
+            </div>
+            <div class="answer-review-stat success">
+                <span>Jawaban Benar</span>
+                <strong>@correctAnswers</strong>
+            </div>
+            <div class="answer-review-stat danger">
+                <span>Jawaban Salah</span>
+                <strong>@incorrectAnswers</strong>
+            </div>
+            <div class="answer-review-stat">
+                <span>Akurasi</span>
+                <strong>@accuracy.ToString("0.##")%</strong>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="answer-review-card">
+    <div class="answer-review-head">
+        <div>
+            <div class="answer-review-title">Daftar Jawaban</div>
+            <div class="text-muted small">Setiap soal menampilkan pilihan peserta, kunci jawaban, dan status hasil secara jelas.</div>
+        </div>
+        <div class="schedule-scope-banner">
+            <span class="scope-chip admin">Benar: @correctAnswers</span>
+            <span class="scope-chip company">Salah: @incorrectAnswers</span>
+            <span class="scope-chip neutral">Total: @totalQuestions</span>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table premium-table answer-review-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Soal</th>
+                    <th>Jawaban Peserta</th>
+                    <th>Kunci Jawaban</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td class="answer-review-order">@item.Order</td>
+                        <td>
+                            <div class="answer-review-question">@item.QuestionText</div>
+                        </td>
+                        <td>
+                            <span class="answer-review-answer @(string.IsNullOrWhiteSpace(item.SelectedAnswer) ? "empty" : string.Empty)">
+                                @(string.IsNullOrWhiteSpace(item.SelectedAnswer) ? "Tidak dijawab" : item.SelectedAnswer)
+                            </span>
+                        </td>
+                        <td>
+                            <span class="answer-review-key">@item.CorrectAnswer</span>
+                        </td>
+                        <td>
+                            <span class="badge @(item.IsCorrect ? "text-bg-success" : "text-bg-danger") answer-review-badge">
+                                @(item.IsCorrect ? "Benar" : "Salah")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

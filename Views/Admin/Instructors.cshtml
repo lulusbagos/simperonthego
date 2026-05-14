@@ -1,0 +1,146 @@
+@model SimperSecureOnlineTestSystem.ViewModels.InstructorDirectoryViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Master Instruktur";
+    var totalInstructors = Model.Instructors.Count;
+    var totalSessions = Model.Sessions.Count;
+    var pendingSessions = Model.Sessions.Count(x => x.Status != PracticalAssessmentStatus.Submitted);
+    var completedSessions = Model.Sessions.Count(x => x.Status == PracticalAssessmentStatus.Submitted);
+    var companyCount = Model.Instructors.Select(x => x.CompanyId).Where(x => x.HasValue).Distinct().Count();
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Instructor Master</span>
+        <h4 class="page-title">Master Instruktur</h4>
+        <p class="page-subtitle">Direktori instruktur dan ringkasan beban assignment praktek sesuai company scope.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Instruktur</span>
+                <strong>@totalInstructors</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Assignment Pending</span>
+                <strong>@pendingSessions</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Assignment Selesai</span>
+                <strong>@completedSessions</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <div class="schedule-date-form">
+            <label class="schedule-toolbar-label">Scope</label>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="metric-chip">@(Model.IsAdministrator ? "Administrator" : "Company")</span>
+                <span class="metric-chip">Company: @companyCount</span>
+                <span class="metric-chip">Sesi: @totalSessions</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="premium-shell p-3 mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-lg-5">
+            <label class="form-label small text-muted mb-1">Cari instruktur, username, company, peserta, atau unit</label>
+            <input type="text" class="form-control" name="keyword" value="@Model.SearchTerm" placeholder="Cari instruktur, company, peserta, atau unit" />
+        </div>
+        <div class="col-lg-4">
+            <div class="schedule-scope-banner">
+                <span class="scope-chip admin">Master akun instruktur</span>
+                <span class="scope-chip company">Scope company tetap aktif</span>
+                <span class="scope-chip neutral">Administrator melihat semua</span>
+            </div>
+        </div>
+        <div class="col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+            <a asp-action="Instructors" class="btn btn-outline-secondary">Reset</a>
+            @if (User.IsInRole(SystemUserRole.Administrator))
+            {
+                <a asp-action="Users" class="btn btn-outline-primary">Kelola Akses</a>
+            }
+        </div>
+    </div>
+</form>
+
+<div class="premium-shell p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="mb-1">Direktori Instruktur</h6>
+            <small class="text-muted">Setiap instruktur menampilkan scope company, beban assignment, dan akses cepat ke hasil praktek.</small>
+        </div>
+        <span class="small text-muted">Total sesi terpantau: @totalSessions</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table premium-table align-middle">
+            <thead>
+                <tr>
+                    <th>Instruktur</th>
+                    <th>Username</th>
+                    <th>Company</th>
+                    <th>Pending</th>
+                    <th>Selesai</th>
+                    <th>Jadwal Terakhir</th>
+                    <th>Status Beban</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Instructors.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">Belum ada akun instruktur pada scope ini.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var instructor in Model.Instructors.OrderBy(x => x.FullName))
+                    {
+                        var assignments = Model.Sessions.Where(x => x.InstructorUserId == instructor.Id).ToList();
+                        var lastSchedule = assignments.OrderByDescending(x => x.ScheduledAt).FirstOrDefault();
+                        var pending = assignments.Count(x => x.Status != PracticalAssessmentStatus.Submitted);
+                        var completed = assignments.Count(x => x.Status == PracticalAssessmentStatus.Submitted);
+                        var workloadBadgeClass = pending >= 10 ? "bg-danger" : pending >= 5 ? "bg-warning text-dark" : "bg-success";
+                        var workloadLabel = pending >= 10 ? "Tinggi" : pending >= 5 ? "Menengah" : "Terkendali";
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@instructor.FullName</div>
+                                <div class="small text-muted">ID @instructor.Id</div>
+                            </td>
+                            <td>@instructor.Username</td>
+                            <td>
+                                @if (instructor.CompanyId.HasValue)
+                                {
+                                    <div class="small text-muted">CID @instructor.CompanyId</div>
+                                    <div class="fw-semibold">@(instructor.Company?.CompanyName ?? "-")</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td><span class="badge text-bg-warning">@pending</span></td>
+                            <td><span class="badge text-bg-success">@completed</span></td>
+                            <td>@(lastSchedule?.ScheduledAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td><span class="badge @workloadBadgeClass">@workloadLabel</span></td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a asp-action="Results" asp-route-keyword="@instructor.FullName" class="btn btn-sm btn-outline-primary">
+                                        Status
+                                    </a>
+                                    <a asp-action="PracticalSessions" asp-route-date="@(DateTime.Today.ToString("yyyy-MM-dd"))" class="btn btn-sm btn-outline-secondary">
+                                        Jadwal
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

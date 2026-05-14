@@ -1,0 +1,171 @@
+@model SimperSecureOnlineTestSystem.ViewModels.SummaryScoreViewModel
+@using SimperSecureOnlineTestSystem.Domain.Enums
+@{
+    ViewData["Title"] = "Summary Score";
+}
+
+<div class="page-head no-print">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Official Assessment Document</span>
+        <h4 class="page-title">Official SIMPER Competency Summary</h4>
+        <p class="page-subtitle">Dokumen resmi hasil teori dan praktek dengan format premium untuk unduh PDF A4 dan verifikasi publik.</p>
+    </div>
+    <div class="toolbar d-flex gap-2 flex-wrap">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-action="Results" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Kembali
+            </a>
+        }
+        @if (Model.CanPrint)
+        {
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-action="DownloadSummaryScorePdf"
+                   asp-route-theorySessionId="@Model.TheorySessionId"
+                   asp-route-practicalSessionId="@Model.PracticalSessionId"
+                   class="btn btn-primary">
+                    <i class="fas fa-file-pdf me-1"></i>Download PDF
+                </a>
+            }
+        }
+    </div>
+</div>
+
+<div class="summary-score-sheet">
+    <section class="summary-score-paper">
+        <div class="summary-score-watermark" aria-hidden="true">
+            <span>OFFICIAL DOCUMENT</span>
+            <small>@Model.SummaryId</small>
+        </div>
+
+        <header class="summary-score-header">
+            <div class="summary-score-logo">
+                @if (System.IO.File.Exists(Model.CompanyLogoPath))
+                {
+                    <img src="~/images/logo indexim.png" alt="PT Indexim Coalindo" />
+                }
+                else
+                {
+                    <div class="summary-score-company-mark">INDEXIM</div>
+                }
+            </div>
+            <div class="summary-score-title-block">
+                <div class="summary-score-company">@Model.CompanyName</div>
+                <h1>Official SIMPER Competency Summary</h1>
+                <div class="summary-score-subtitle">SIMPER On The Go Assessment Record</div>
+                <div class="summary-score-id">Summary ID: @Model.SummaryId</div>
+            </div>
+            <div class="summary-score-logo align-end">
+                <img src="~/logo/logo.png" alt="Simper On The Go" />
+            </div>
+        </header>
+
+        <section class="summary-score-banner">
+            <div>
+                <span>Status Akhir</span>
+                <strong class="@(Model.FinalStatus == "LULUS" ? "is-pass" : "is-fail")">@Model.FinalStatus</strong>
+            </div>
+            <div>
+                <span>Teori</span>
+                <strong class="@(Model.TheoryPassed ? "is-pass" : "is-fail")">@(Model.TheoryPassed ? "LULUS" : "TIDAK LULUS")</strong>
+            </div>
+            <div>
+                <span>Praktek</span>
+                <strong class="@(Model.PracticalPassed ? "is-pass" : "is-fail")">@(Model.PracticalPassed ? "LULUS" : "TIDAK LULUS")</strong>
+            </div>
+        </section>
+
+        <div class="summary-score-grid">
+            <section class="summary-score-card">
+                <div class="summary-score-card-title">Detail Karyawan</div>
+                <div class="summary-score-kv">
+                    <span>Nama</span><strong>@Model.EmployeeName</strong>
+                    <span>NIK / NRP</span><strong>@Model.Nrp</strong>
+                    <span>KTP</span><strong>@(string.IsNullOrWhiteSpace(Model.Ktp) ? "-" : Model.Ktp)</strong>
+                    <span>Departemen</span><strong>@(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "-" : Model.DepartmentName)</strong>
+                    <span>Pengajuan</span><strong>@(string.IsNullOrWhiteSpace(Model.SubmissionType) ? "-" : Model.SubmissionType)</strong>
+                    <span>No. Pengajuan</span><strong>@(string.IsNullOrWhiteSpace(Model.SubmissionNumber) ? "-" : Model.SubmissionNumber)</strong>
+                    <span>Unit</span><strong>@Model.VehicleName</strong>
+                    <span>Instruktur</span><strong>@(string.IsNullOrWhiteSpace(Model.InstructorName) ? "-" : Model.InstructorName)</strong>
+                </div>
+            </section>
+
+            <section class="summary-score-card summary-score-qr-card">
+                <div class="summary-score-card-title">Bukti ID Tes</div>
+                <img src="@Model.QrCodeDataUrl" alt="QR Code Bukti Tes" class="summary-score-qr" />
+                <div class="summary-score-qr-text">@Model.QrProofText</div>
+                <div class="summary-score-qr-link">@Model.QrTargetUrl</div>
+            </section>
+        </div>
+
+        <div class="summary-score-metrics">
+            <section class="summary-score-card summary-score-card-score @(Model.TheoryPassed ? "pass" : "fail")">
+                <div class="summary-score-metric-label">Nilai Teori</div>
+                <div class="summary-score-metric-value">@Model.TheoryScore.ToString("0.##")</div>
+                <div class="summary-score-metric-meta">Benar @Model.TheoryCorrectAnswers / @Model.TheoryTotalQuestions soal</div>
+                <div class="summary-score-metric-time">
+                    Jadwal: @Model.TheoryScheduledAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")<br />
+                    Selesai: @Model.TheoryFinishedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                </div>
+            </section>
+
+            <section class="summary-score-card summary-score-card-score @(Model.PracticalPassed ? "pass" : "fail")">
+                <div class="summary-score-metric-label">Nilai Praktek</div>
+                <div class="summary-score-metric-value">@Model.PracticalDisplayScore</div>
+                <div class="summary-score-metric-meta">@Model.PracticalTemplateName</div>
+                <div class="summary-score-metric-time">
+                    Jadwal: @Model.PracticalScheduledAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")<br />
+                    Selesai: @Model.PracticalFinishedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                </div>
+            </section>
+        </div>
+
+        <section class="summary-score-card">
+            <div class="summary-score-card-title">Rincian Penilaian Praktek</div>
+            <div class="table-responsive">
+                <table class="table premium-table summary-score-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Section</th>
+                            <th>Item</th>
+                            <th>Bobot</th>
+                            <th>Nilai</th>
+                            <th>Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.PracticalItems)
+                        {
+                            <tr>
+                                <td>@item.SectionName</td>
+                                <td>@item.ItemLabel</td>
+                                <td>@item.Weight.ToString("0.##")</td>
+                                <td>
+                                    @(Model.PracticalScoringMode == PracticalScoringMode.Numeric
+                                        ? item.NumericValue?.ToString("0.##")
+                                        : item.GradeValue)
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(item.Note) ? "-" : item.Note)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.InstructorNote))
+            {
+                <div class="summary-score-note">
+                    <span>Catatan Instruktur</span>
+                    <strong>@Model.InstructorNote</strong>
+                </div>
+            }
+        </section>
+
+        <footer class="summary-score-footer-note">
+            <span>Dokumen resmi SIMPER On The Go.</span>
+            <span>Verifikasi melalui QR Code atau halaman publik aplikasi.</span>
+            <strong>Status akhir: @Model.FinalStatus</strong>
+        </footer>
+    </section>
+</div>

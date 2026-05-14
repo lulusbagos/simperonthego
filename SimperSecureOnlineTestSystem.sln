@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimperSecureOnlineTestSystem", "SimperSecureOnlineTestSystem.csproj", "{5C532357-2588-53EA-3D3C-E0731261829C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5C532357-2588-53EA-3D3C-E0731261829C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C532357-2588-53EA-3D3C-E0731261829C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C532357-2588-53EA-3D3C-E0731261829C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C532357-2588-53EA-3D3C-E0731261829C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6D7CCA5D-1602-4C5E-BD6A-0F0F40308D3E}
+	EndGlobalSection
+EndGlobal

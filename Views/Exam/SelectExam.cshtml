@@ -1,0 +1,38 @@
+@model SimperSecureOnlineTestSystem.ViewModels.SelectExamViewModel
+@{
+    ViewData["Title"] = "Select Exam";
+}
+
+<div class="row justify-content-center participant-flow">
+    <div class="col-md-8">
+        <div class="card shadow-sm participant-card" data-animate="reveal">
+            <div class="card-header bg-success text-white">Step 3 - Select SIMPER and Vehicle</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Employee:</strong> @Model.EmployeeName (@Model.Nrp)
+                </div>
+                <form asp-action="CreateSession" method="post" class="participant-form" data-loading-form="true">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Nrp" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="mb-3">
+                        <label asp-for="VehicleId" class="form-label"></label>
+                        <select asp-for="VehicleId" class="form-select">
+                            <option value="">Select vehicle</option>
+                            @foreach (var vehicle in Model.Vehicles)
+                            {
+                                <option value="@vehicle.Id">@vehicle.VehicleName (@vehicle.SimperType)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="VehicleId" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-success" data-loading-button="Generate Secure Session">Generate Secure Session</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

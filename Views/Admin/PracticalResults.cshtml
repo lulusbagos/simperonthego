@@ -1,0 +1,216 @@
+@model SimperSecureOnlineTestSystem.ViewModels.PracticalResultsViewModel
+@{
+    ViewData["Title"] = "Hasil Praktek";
+    var ordered = Model.Sessions.OrderByDescending(x => x.SubmittedAt ?? x.ScheduledAt).ToList();
+    var totalResults = ordered.Count;
+    var passCount = ordered.Count(x => x.PassStatus == true);
+    var failCount = ordered.Count(x => x.PassStatus == false);
+    var pendingReviewCount = ordered.Count(x => !x.PassStatus.HasValue);
+    var uniqueEmployees = ordered.Select(x => x.EmployeeId).Distinct().Count();
+    var uniqueInstructors = ordered.Select(x => x.InstructorUserId).Distinct().Count();
+    var averageNumeric = ordered.Where(x => x.FinalNumericScore.HasValue).Select(x => x.FinalNumericScore!.Value).DefaultIfEmpty().Average();
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Practical Result Center</span>
+        <h4 class="page-title">Hasil Praktek</h4>
+        <p class="page-subtitle">Rekap seluruh penilaian praktek yang sudah disubmit, dengan fokus pada kualitas hasil dan performa instruktur.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Total Hasil</span>
+                <strong>@totalResults</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Lulus</span>
+                <strong>@passCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Tidak Lulus</span>
+                <strong>@failCount</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <div class="schedule-date-form">
+            <label class="schedule-toolbar-label">Operational Summary</label>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="metric-chip">@(Model.IsAdministrator ? "Administrator" : "Company")</span>
+                <span class="metric-chip">Peserta: @uniqueEmployees</span>
+                <span class="metric-chip">Instruktur: @uniqueInstructors</span>
+                <span class="metric-chip">Avg Numeric: @Math.Round(averageNumeric, 2)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="premium-shell p-3 mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-lg-5">
+            <label class="form-label small text-muted mb-1">Cari peserta, unit, instruktur, company, atau template</label>
+            <input type="text" class="form-control" name="keyword" value="@Model.SearchTerm" placeholder="Cari peserta, unit, instruktur, company, atau template" />
+        </div>
+        <div class="col-lg-4">
+            <div class="schedule-scope-banner">
+                <span class="scope-chip admin">Hanya sesi submitted</span>
+                <span class="scope-chip company">Nilai final instruktur</span>
+                <span class="scope-chip neutral">Selaras dengan status akhir</span>
+            </div>
+        </div>
+        <div class="col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+            <a asp-action="PracticalResults" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3">
+        <div class="camera-mini-box warning h-100">
+            <div class="camera-mini-label">Belum Final</div>
+            <div class="camera-mini-value">@pendingReviewCount</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="camera-mini-box h-100">
+            <div class="camera-mini-label">Peserta</div>
+            <div class="camera-mini-value">@uniqueEmployees</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="camera-mini-box h-100">
+            <div class="camera-mini-label">Instruktur</div>
+            <div class="camera-mini-value">@uniqueInstructors</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="camera-mini-box success h-100">
+            <div class="camera-mini-label">Avg Numeric</div>
+            <div class="camera-mini-value">@Math.Round(averageNumeric, 2)</div>
+        </div>
+    </div>
+</div>
+
+<div class="premium-shell p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="mb-1">Matriks Hasil Praktek</h6>
+            <small class="text-muted">Satu baris mewakili satu sesi penilaian praktek yang sudah direkam oleh instruktur.</small>
+        </div>
+        <span class="small text-muted">Urut terbaru ke lama</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table premium-table align-middle">
+            <thead>
+                <tr>
+                    <th>Peserta</th>
+                    <th>Company</th>
+                    <th>Unit</th>
+                    <th>Instruktur</th>
+                    <th>Template</th>
+                    <th>Nilai</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ordered.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">Belum ada hasil praktek yang tersedia.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in ordered)
+                    {
+                        var finalValue = item.FinalNumericScore.HasValue
+                            ? item.FinalNumericScore.Value.ToString("0.##")
+                            : string.IsNullOrWhiteSpace(item.FinalGrade) ? "-" : item.FinalGrade;
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.Nrp</div>
+                                <div class="small text-muted">@item.EmployeeName</div>
+                            </td>
+                            <td>@item.CompanyName</td>
+                            <td>@item.VehicleName</td>
+                            <td>@item.InstructorName</td>
+                            <td>@item.TemplateName</td>
+                            <td><span class="badge text-bg-light border">@finalValue</span></td>
+                            <td>
+                                @if (item.PassStatus == true)
+                                {
+                                    <span class="badge bg-success">LULUS</span>
+                                }
+                                else if (item.PassStatus == false)
+                                {
+                                    <span class="badge bg-danger">TIDAK LULUS</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">BELUM FINAL</span>
+                                }
+                            </td>
+                            <td>@((item.SubmittedAt ?? item.ScheduledAt).ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a asp-controller="Practical" asp-action="Evaluate" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                        Detail
+                                    </a>
+                                    <a asp-action="Instructors" asp-route-keyword="@item.InstructorName" class="btn btn-sm btn-outline-secondary">
+                                        Instruktur
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="premium-shell p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h6 class="mb-1">Catatan Instruktur</h6>
+            <small class="text-muted">Catatan ringkas dari penilai lapangan untuk membantu review kualitas praktek.</small>
+        </div>
+        <span class="small text-muted">Notes terbaru per sesi</span>
+    </div>
+
+    @if (ordered.Count == 0)
+    {
+        <div class="text-muted">Belum ada catatan instruktur.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table premium-table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Peserta</th>
+                        <th>Instruktur</th>
+                        <th>Ringkasan Catatan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in ordered)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.EmployeeName</div>
+                                <div class="small text-muted">@item.Nrp · @item.VehicleName</div>
+                            </td>
+                            <td>@item.InstructorName</td>
+                            <td class="small text-muted">@(string.IsNullOrWhiteSpace(item.InstructorNote) ? "-" : item.InstructorNote)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

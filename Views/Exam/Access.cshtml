@@ -1,0 +1,34 @@
+@model SimperSecureOnlineTestSystem.ViewModels.ExamAccessViewModel
+@{
+    ViewData["Title"] = "Akses Ujian";
+}
+
+<div class="row justify-content-center participant-flow">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-sm mt-4 participant-card" data-animate="reveal">
+            <div class="card-header bg-primary text-white fw-semibold">Masuk Ujian via Ref ID</div>
+            <div class="card-body p-4">
+                <p class="text-muted mb-3">Ref ID valid. Klik tombol di bawah untuk mulai ujian.</p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.RefId))
+                {
+                    <div class="alert alert-light border py-2 mb-3">
+                        <strong>Ref ID:</strong> @Model.RefId
+                    </div>
+                }
+
+                <form asp-action="Access" method="post" class="participant-form" data-loading-form="true">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Token" type="hidden" />
+                    <input asp-for="RefId" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                    <button type="submit" class="btn btn-primary w-100" data-loading-button="Mulai Ujian">Mulai Ujian</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

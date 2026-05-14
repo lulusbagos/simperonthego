@@ -1,0 +1,334 @@
+@model SimperSecureOnlineTestSystem.Application.DTOs.ScheduleBoardDto
+@{
+    ViewData["Title"] = "Schedule Tests";
+    var selectedDate = Model.Date.Date;
+    var slots = Enumerable.Range(8, 10).Select(h => new TimeSpan(h, 0, 0)).ToList();
+    var scheduledCount = Model.Items.Count;
+    var displayedEmployeeCount = Model.DisplayedEmployees.Count;
+    var companySummaries = Model.Employees
+        .Select(x => new { x.CompanyId, x.CompanyName })
+        .Concat(Model.Vehicles.Select(x => new { x.CompanyId, x.CompanyName }))
+        .GroupBy(x => new { x.CompanyId, x.CompanyName })
+        .Select(group => new
+        {
+            group.Key.CompanyId,
+            CompanyName = string.IsNullOrWhiteSpace(group.Key.CompanyName) ? $"Company {group.Key.CompanyId}" : group.Key.CompanyName,
+            EmployeeCount = Model.Employees.Count(x => x.CompanyId == group.Key.CompanyId),
+            VehicleCount = Model.Vehicles.Count(x => x.CompanyId == group.Key.CompanyId),
+            ScheduledEmployeeCount = Model.Items.Count(x => x.CompanyId == group.Key.CompanyId)
+        })
+        .OrderBy(x => x.CompanyName)
+        .ToList();
+    var vehicleGroups = Model.Vehicles
+        .GroupBy(x => new { x.CompanyId, x.CompanyName })
+        .OrderBy(group => string.IsNullOrWhiteSpace(group.Key.CompanyName) ? $"Company {group.Key.CompanyId}" : group.Key.CompanyName)
+        .ToList();
+    var practicalDoneKeys = Model.PracticalCompletedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
+
+<div class="page-head">
+    <div class="schedule-hero-copy">
+        <span class="dash-kicker">Theory Scheduler</span>
+        <h4 class="page-title">Penjadwalan Tes</h4>
+        <p class="page-subtitle">Panel kiri difokuskan untuk daftar NIK/NRP yang mudah discan, panel kanan untuk grid jadwal per unit dan jam.</p>
+        <div class="schedule-head-metrics">
+            <div class="schedule-head-metric">
+                <span>Peserta</span>
+                <strong>@Model.TotalEmployeeCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Jadwal Aktif</span>
+                <strong>@scheduledCount</strong>
+            </div>
+            <div class="schedule-head-metric">
+                <span>Unit Tampil</span>
+                <strong>@Model.Vehicles.Count</strong>
+            </div>
+        </div>
+    </div>
+    <div class="toolbar schedule-head-toolbar">
+        <form method="get" class="schedule-date-form">
+            <label class="schedule-toolbar-label">Tanggal Operasional</label>
+            <div class="schedule-date-form-row">
+                <input type="date" class="form-control" name="date" value="@selectedDate.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-primary">Load</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="schedule-scope-banner mb-3">
+    @if (Model.IsAdministrator)
+    {
+        <span class="scope-chip admin">Mode Administrator: semua company dapat dikelola.</span>
+    }
+    else
+    {
+        <span class="scope-chip company">Mode Company Admin: hanya data company ID @Model.ScopedCompanyId.</span>
+    }
+    <span class="scope-chip neutral">Tanggal aktif: @selectedDate.ToString("dd/MM/yyyy")</span>
+    <span class="scope-chip neutral">Peserta: @Model.TotalEmployeeCount</span>
+    <span class="scope-chip neutral">Jadwal aktif: @scheduledCount</span>
+</div>
+
+<div class="schedule-action-grid mb-3">
+    <div class="premium-shell p-3 schedule-block">
+        <div class="schedule-form-head">
+            <div>
+                <div class="schedule-form-title">Auto Penjadwalan</div>
+                <div class="schedule-form-caption">Sebarkan peserta yang belum terjadwal secara otomatis berdasarkan kapasitas harian.</div>
+            </div>
+            <span class="schedule-form-badge accent-warm">Automation</span>
+        </div>
+        <form asp-action="AutoSchedule" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3">
+                <label class="form-label">Mulai Tanggal</label>
+                <input type="date" name="StartDate" class="form-control" value="@selectedDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Orang per Hari</label>
+                <input type="number" name="PeoplePerDay" class="form-control" value="20" min="1" />
+            </div>
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-outline-primary">Auto Penjadwalan NIK Belum Terjadwal</button>
+                <small class="text-muted d-block mt-1">Sistem menjadwalkan otomatis dari tanggal mulai, per hari sesuai kapasitas, sampai peserta habis.</small>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-3">
+        <div class="premium-shell p-3 schedule-left-panel schedule-block">
+            <div class="schedule-employee-panel-head">
+                <div>
+                    <h6 class="mb-1">Daftar NIK / NRP</h6>
+                    <small class="text-muted">Tiap kartu dibuat ringkas: NIK, KTP, nama, dan company langsung terbaca.</small>
+                </div>
+                <div class="schedule-employee-counter">
+                    <span id="employeeVisibleCount">@displayedEmployeeCount</span> / @Model.TotalEmployeeCount
+                </div>
+            </div>
+
+            <div class="schedule-employee-pagination mb-3">
+                <span class="schedule-employee-pagination-meta">Halaman @Model.EmployeePage / @Model.TotalEmployeePages · menampilkan @displayedEmployeeCount peserta</span>
+                <div class="schedule-employee-pagination-actions">
+                    <a asp-action="Schedules"
+                       asp-route-date="@selectedDate.ToString("yyyy-MM-dd")"
+                       asp-route-employeePage="@(Model.EmployeePage > 1 ? Model.EmployeePage - 1 : 1)"
+                       class="btn btn-sm btn-outline-secondary @(Model.EmployeePage <= 1 ? "disabled" : string.Empty)">
+                        <i class="fas fa-chevron-left me-1"></i>Prev
+                    </a>
+                    <a asp-action="Schedules"
+                       asp-route-date="@selectedDate.ToString("yyyy-MM-dd")"
+                       asp-route-employeePage="@(Model.EmployeePage < Model.TotalEmployeePages ? Model.EmployeePage + 1 : Model.TotalEmployeePages)"
+                       class="btn btn-sm btn-outline-secondary @(Model.EmployeePage >= Model.TotalEmployeePages ? "disabled" : string.Empty)">
+                        Next<i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="employeeSearchInput" class="form-label">Cari peserta</label>
+                <input type="text" id="employeeSearchInput" class="form-control" placeholder="Cari NIK, KTP, nama, atau company..." />
+            </div>
+
+            <div class="schedule-employee-helper mb-3">
+                <span class="helper-dot"></span> Satu sesi sekarang bisa diisi beberapa peserta. Drag peserta ke slot yang sama sampai kapasitas sesi terpenuhi.
+            </div>
+
+            <div class="schedule-employee-list" id="employeeDragList">
+                @foreach (var emp in Model.DisplayedEmployees.OrderBy(x => x.Nik).ThenBy(x => x.EmployeeName))
+                {
+                    <div class="schedule-employee" draggable="true" data-employee-id="@emp.Id" data-company-id="@emp.CompanyId" data-company-name="@emp.CompanyName" data-nrp="@emp.Nrp" data-nik="@emp.Nik" data-ktp="@emp.Ktp" data-name="@emp.EmployeeName">
+                        <div class="schedule-employee-top">
+                            <div class="schedule-employee-nrp">NIK @emp.Nik</div>
+                            <span class="mini-company-id">CID @emp.CompanyId</span>
+                        </div>
+                        <div class="schedule-employee-name">@emp.EmployeeName</div>
+                        <div class="schedule-employee-meta">
+                            <span>KTP: @(string.IsNullOrWhiteSpace(emp.Ktp) ? "-" : emp.Ktp)</span>
+                            <span>@emp.CompanyName</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-9">
+        <div class="premium-shell p-3 schedule-block schedule-board-shell theory-board-shell">
+            <div class="schedule-board-topbar">
+                <div class="schedule-legend">
+                    <span class="legend-item board-type-theory">Board Teori</span>
+                    <span class="legend-item scheduled-scheduled">Scheduled</span>
+                    <span class="legend-item scheduled-in_progress">In Progress</span>
+                    <span class="legend-item scheduled-completed">Completed</span>
+                    <span class="legend-item practical-done-dot">Praktek Selesai</span>
+                </div>
+                <small class="text-muted">Tip: satu slot vehicle + jam dapat menampung beberapa peserta sampai kapasitas sesi tercapai.</small>
+            </div>
+
+            <div class="table-responsive" style="max-height:70vh;overflow:auto;">
+                <table class="table premium-table table-bordered align-middle schedule-table" id="scheduleBoard" data-max-participants="@Model.MaxParticipantsPerSession">
+                    <thead>
+                        <tr>
+                            <th style="min-width:220px;">Vehicle / Unit</th>
+                            @foreach (var slot in slots)
+                            {
+                                <th class="text-center" style="min-width:116px;">@slot.ToString("hh\\:mm")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var companyGroup in vehicleGroups)
+                        {
+                            var companyName = string.IsNullOrWhiteSpace(companyGroup.Key.CompanyName) ? $"Company {companyGroup.Key.CompanyId}" : companyGroup.Key.CompanyName;
+                            <tr class="schedule-company-row" data-company-id="@companyGroup.Key.CompanyId">
+                                <td colspan="@(slots.Count + 1)">
+                                    <div class="schedule-company-row-bar">
+                                        <div>
+                                            <strong>@companyName</strong>
+                                            <span class="mini-company-id ms-2">CID @companyGroup.Key.CompanyId</span>
+                                        </div>
+                                        <div class="schedule-company-row-meta">
+                                            <span>@companyGroup.Count() unit</span>
+                                            <span>@Model.Employees.Count(x => x.CompanyId == companyGroup.Key.CompanyId) peserta</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            @foreach (var vehicle in companyGroup.OrderBy(x => x.VehicleName))
+                            {
+                                <tr class="schedule-board-row" data-company-id="@vehicle.CompanyId" data-vehicle-name="@vehicle.VehicleName" data-simper-type="@vehicle.SimperType" data-company-name="@companyName">
+                                    <td class="schedule-vehicle-cell">
+                                        <div class="schedule-vehicle-card">
+                                            <div class="vehicle-kicker">@companyName</div>
+                                            <div class="vehicle-title">@vehicle.VehicleName</div>
+                                            <div class="vehicle-meta">
+                                                <i class="fas fa-truck-moving me-1"></i>@vehicle.SimperType
+                                                <span class="mini-company-id ms-1">CID @vehicle.CompanyId</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    @foreach (var slot in slots)
+                                    {
+                                        var localSlot = selectedDate.Add(slot);
+                                        var utcSlot = DateTime.SpecifyKind(localSlot, DateTimeKind.Local).ToUniversalTime();
+                                        var slotItems = Model.Items
+                                            .Where(x => x.VehicleId == vehicle.Id && x.ScheduledAt == utcSlot)
+                                            .OrderBy(x => x.Nrp)
+                                            .ToList();
+
+                                        <td class="schedule-slot theory-slot" data-vehicle-id="@vehicle.Id" data-scheduled-at="@utcSlot.ToString("O")">
+                                            <div class="schedule-slot-stack">
+                                                @if (slotItems.Count > 0)
+                                                {
+                                                    <div class="schedule-slot-capacity">@slotItems.Count / @Model.MaxParticipantsPerSession peserta</div>
+                                                }
+
+                                                @foreach (var item in slotItems)
+                                                {
+                                                    var practicalDone = practicalDoneKeys.Contains($"{item.EmployeeId}|{item.VehicleId}");
+                                                    <div class="scheduled-chip schedule-session-card schedule-session-card--theory scheduled-@item.Status"
+                                                         data-schedule-id="@item.Id"
+                                                         data-employee-id="@item.EmployeeId"
+                                                         data-nrp="@item.Nrp"
+                                                         data-name="@item.EmployeeName"
+                                                         draggable="true">
+                                                        <div class="schedule-session-card-head">
+                                                            <div class="schedule-session-card-code text-truncate d-flex align-items-center gap-2">
+                                                                @if (practicalDone)
+                                                                {
+                                                                    <span class="schedule-cross-dot practical-done pulse-dot" title="Praktek sudah selesai"></span>
+                                                                }
+                                                                <span>@item.Nrp</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="schedule-session-card-body">
+                                                            <div class="schedule-session-card-title text-truncate">@item.EmployeeName</div>
+                                                        </div>
+                                                        <div class="schedule-session-card-foot">
+                                                            <span class="schedule-status-pill schedule-status-@item.Status.Replace(" ", "_")">@item.Status</span>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-schedule" data-schedule-id="@item.Id" draggable="false">
+                                                                <i class="fas fa-xmark"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (slotItems.Count == 0)
+                                                {
+                                                    <div class="schedule-slot-empty">Drop peserta di sini</div>
+                                                }
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scheduleAccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content schedule-access-modal">
+            <div class="modal-header">
+                <div>
+                    <div class="schedule-access-kicker">Access Copied</div>
+                    <h5 class="modal-title mb-0">Akses tes berhasil disalin</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="schedule-access-hero">
+                    <div class="schedule-access-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div>
+                        <div class="schedule-access-title" id="scheduleAccessEmployee">Peserta siap masuk sesi ujian</div>
+                        <div class="schedule-access-subtitle" id="scheduleAccessVehicle">Detail vehicle dan jam tes tampil di bawah ini.</div>
+                    </div>
+                </div>
+
+                <div class="schedule-access-grid">
+                    <div class="schedule-access-card">
+                        <span>Exam Link</span>
+                        <strong id="scheduleAccessLink">-</strong>
+                    </div>
+                    <div class="schedule-access-card">
+                        <span>Ref ID</span>
+                        <strong id="scheduleAccessRefId">-</strong>
+                    </div>
+                    <div class="schedule-access-card">
+                        <span>Jam Tes</span>
+                        <strong id="scheduleAccessTime">-</strong>
+                    </div>
+                </div>
+
+                <div class="schedule-access-note">
+                    Teks akses sudah masuk ke clipboard. Operator dapat langsung paste ke chat, email, atau instruksi peserta.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" id="scheduleAccessCopyAgain">Salin Lagi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.scheduleConfig = {
+            date: "@selectedDate.ToString("yyyy-MM-dd")"
+        };
+    </script>
+    <script src="~/js/admin-schedules.js" asp-append-version="true"></script>
+}
